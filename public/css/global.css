@@ -1,0 +1,12 @@
+@import url('catalogo.css');
+@import url('modal.css');
+@import url('admin.css');
+
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    background-color: #f1f5f9;
+}

@@ -1,0 +1,32 @@
+# Dependências
+node_modules/
+
+# Logs do Node e NPM (cobre todas as versões)
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Variáveis de Ambiente e Segredos
+.env
+.env.*
+!.env.example
+
+# Arquivos de Sistema e Editores
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~
+
+# Relatórios de Testes e Cache
+coverage/
+.cache/
+
+# Documentação interna e Planejamento da Disciplina
+documenta_o_do_projeto_adotapet.md
+plano_de_desenvolvimento_adotapet.md
