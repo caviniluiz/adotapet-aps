@@ -1,0 +1,179 @@
+[
+  {
+    "id": 1,
+    "nome": "Thor",
+    "especie": "Cachorro",
+    "idadeMeses": 24,
+    "porte": "GRANDE",
+    "sexo": "M",
+    "status": "DISPONIVEL",
+    "modalidade": "ADOCAO_DEFINITIVA",
+    "fotoUrl": "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=600&q=80",
+    "descricao": "Dócil, brincalhão e ótimo companheiro para famílias com quintal amplo.",
+    "nivelEnergia": "ALTO",
+    "sociavelComCaes": true,
+    "fichaMedica": {
+      "id": 1,
+      "castrado": true,
+      "vermifugado": true,
+      "observacoesClinicas": "Check-up anual em dia. Sem alergias.",
+      "vacinas": [
+        {
+          "id": 101,
+          "nomeVacina": "V10 Múltipla",
+          "dataAplicacao": "2026-03-15",
+          "lote": "V10-2026A"
+        },
+        {
+          "id": 102,
+          "nomeVacina": "Antirrábica",
+          "dataAplicacao": "2026-04-10",
+          "lote": "RAB-8891"
+        }
+      ]
+    }
+  },
+  {
+    "id": 2,
+    "nome": "Luna",
+    "especie": "Gato",
+    "idadeMeses": 14,
+    "porte": "PEQUENO",
+    "sexo": "F",
+    "status": "DISPONIVEL",
+    "modalidade": "ADOCAO_DEFINITIVA",
+    "fotoUrl": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80",
+    "descricao": "Gatinha calma, carinhosa e acostumada a viver em apartamento telado.",
+    "testadoFivFelv": true,
+    "negativoFivFelv": true,
+    "adaptadoApartamento": true,
+    "fichaMedica": {
+      "id": 2,
+      "castrado": true,
+      "vermifugado": true,
+      "observacoesClinicas": "Negativa para FIV e FeLV. Castrada há 6 meses.",
+      "vacinas": [
+        {
+          "id": 201,
+          "nomeVacina": "Quádrupla Felina (V4)",
+          "dataAplicacao": "2026-02-20",
+          "lote": "FEL-V402"
+        }
+      ]
+    }
+  },
+  {
+    "id": 3,
+    "nome": "Pipoca",
+    "especie": "Cachorro",
+    "idadeMeses": 4,
+    "porte": "PEQUENO",
+    "sexo": "F",
+    "status": "DISPONIVEL",
+    "modalidade": "ADOCAO_DEFINITIVA",
+    "fotoUrl": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80",
+    "descricao": "Filhote resgatada, super esperta e se adapta bem a apartamentos.",
+    "nivelEnergia": "MEDIO",
+    "sociavelComCaes": true,
+    "fichaMedica": {
+      "id": 3,
+      "castrado": false,
+      "vermifugado": true,
+      "observacoesClinicas": "Filhote (4 meses) — castração programada aos 6 meses (isenta da RN04 por ser menor de 6 meses).",
+      "vacinas": [
+        {
+          "id": 301,
+          "nomeVacina": "V8 (1ª Dose)",
+          "dataAplicacao": "2026-09-01",
+          "lote": "PUP-109"
+        }
+      ]
+    }
+  },
+  {
+    "id": 4,
+    "nome": "Mingau",
+    "especie": "Gato",
+    "idadeMeses": 8,
+    "porte": "PEQUENO",
+    "sexo": "M",
+    "status": "DISPONIVEL",
+    "modalidade": "LAR_TEMPORARIO",
+    "fotoUrl": "https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=600&q=80",
+    "descricao": "Resgatado recentemente. Muito manso, busca lar temporário ou adoção responsável.",
+    "testadoFivFelv": true,
+    "negativoFivFelv": true,
+    "adaptadoApartamento": true,
+    "fichaMedica": {
+      "id": 4,
+      "castrado": false,
+      "vermifugado": true,
+      "observacoesClinicas": "Adulto (8 meses) ainda não castrado — ideal para testar bloqueio da RN04 em adoção definitiva.",
+      "vacinas": []
+    }
+  },
+  {
+    "id": 5,
+    "nome": "Bidu",
+    "especie": "Cachorro",
+    "idadeMeses": 36,
+    "porte": "MEDIO",
+    "sexo": "M",
+    "status": "DISPONIVEL",
+    "modalidade": "ADOCAO_DEFINITIVA",
+    "fotoUrl": "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=600&q=80",
+    "descricao": "Cão tranquilo, obediente e muito companheiro. Adora passeios leves.",
+    "nivelEnergia": "BAIXO",
+    "sociavelComCaes": true,
+    "fichaMedica": {
+      "id": 5,
+      "castrado": true,
+      "vermifugado": true,
+      "observacoesClinicas": "Saúde perfeita.",
+      "vacinas": [
+        {
+          "id": 501,
+          "nomeVacina": "V10 Múltipla",
+          "dataAplicacao": "2026-01-12",
+          "lote": "V10-112"
+        }
+      ]
+    }
+  },
+  {
+    "id": 6,
+    "nome": "Amora",
+    "especie": "Gato",
+    "idadeMeses": 18,
+    "porte": "PEQUENO",
+    "sexo": "F",
+    "status": "DISPONIVEL",
+    "modalidade": "ADOCAO_DEFINITIVA",
+    "fotoUrl": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=600&q=80",
+    "descricao": "Gata peluda e super brincalhona. Adora sachê e arranhadores altos.",
+    "testadoFivFelv": true,
+    "negativoFivFelv": true,
+    "adaptadoApartamento": true,
+    "fichaMedica": {
+      "id": 6,
+      "castrado": true,
+      "vermifugado": true,
+      "observacoesClinicas": "Castrada, microchipada e vacinada.",
+      "vacinas": [
+        {
+          "id": 601,
+          "nomeVacina": "Quíntupla Felina (V5)",
+          "dataAplicacao": "2026-06-05",
+          "lote": "FEL-V599"
+        },
+        {
+          "id": 602,
+          "nomeVacina": "Antirrábica",
+          "dataAplicacao": "2026-06-05",
+          "lote": "RAB-9012"
+        }
+      ]
+    }
+  }
+]
+

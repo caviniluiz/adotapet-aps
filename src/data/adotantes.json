@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "nome": "Mariana Souza",
+    "cpf": "123.456.789-01",
+    "idade": 28,
+    "telefone": "(11) 98765-4321",
+    "tipoMoradia": "APARTAMENTO",
+    "possuiTelasProtecao": true
+  },
+  {
+    "id": 2,
+    "nome": "Carlos Eduardo Lima",
+    "cpf": "234.567.890-12",
+    "idade": 34,
+    "telefone": "(11) 97654-3210",
+    "tipoMoradia": "CASA",
+    "possuiTelasProtecao": false
+  },
+  {
+    "id": 3,
+    "nome": "Lucas Mendes (Menor de Idade)",
+    "cpf": "345.678.901-23",
+    "idade": 16,
+    "telefone": "(11) 96543-2109",
+    "tipoMoradia": "APARTAMENTO",
+    "possuiTelasProtecao": true
+  }
+]
+
