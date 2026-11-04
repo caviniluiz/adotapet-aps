@@ -22,11 +22,9 @@ desktop.ini
 .idea/
 *.swp
 *~
+docs/
+references/
 
 # Relatórios de Testes e Cache
 coverage/
 .cache/
-
-# Documentação interna e Planejamento da Disciplina
-documenta_o_do_projeto_adotapet.md
-plano_de_desenvolvimento_adotapet.md
