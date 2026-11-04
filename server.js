@@ -13,18 +13,11 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('/api/status', (req, res) => {
-    res.json({
-        mensagem: 'API do AdotaPet funcionando com sucesso!',
-        versao: '1.0.0',
-        timestamp: new Date().toISOString()
-    });
-});
-
 app.get('/api/health', (req, res) => {
     res.status(200).json({
         status: 'UP',
         servico: 'AdotaPet Backend API',
+        versao: '1.0.0',
         uptimeSegundos: Math.floor(process.uptime()),
         timestamp: new Date().toISOString(),
         conexao: 'ok'
@@ -71,7 +64,6 @@ if (require.main === module) {
         console.log('----------------------------------------------------');
         console.log(`🐾 AdotaPet — Servidor iniciado com sucesso!`);
         console.log(`🌐 Aplicação:  http://localhost:${PORT}`);
-        console.log(`🩺 API Status: http://localhost:${PORT}/api/status`);
         console.log(`💚 API Health: http://localhost:${PORT}/api/health`);
         console.log('----------------------------------------------------');
     });
