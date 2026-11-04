@@ -2,11 +2,481 @@
 @import url('modal.css');
 @import url('admin.css');
 
+/* ============================================================
+   DESIGN SYSTEM — ADOTAPET 🐾
+   Direção visual: alegre e chamativo (Coral + Turquesa sobre creme)
+   Referências: references/website 01 + 02
+   ============================================================ */
+:root {
+    /* Paleta principal */
+    --coral: #FF6F61;
+    --coral-hover: #E95547;
+    --coral-soft: #FFE9E4;
+    --turquesa: #12B5A5;
+    --turquesa-hover: #0C9084;
+    --turquesa-soft: #D9F4F0;
+    --sun: #FFC356;
+    --sun-soft: #FFF2D9;
+    --violeta: #8B5CF6;
+    --violeta-soft: #EFE7FD;
+
+    /* Semânticas */
+    --danger: #E14B4B;
+    --danger-hover: #C43A3A;
+    --danger-bg: #FDECEA;
+    --danger-border: #F8C7C2;
+    --success: #1FA463;
+    --success-bg: #E4F7ED;
+    --success-border: #BFE9D1;
+    --warning: #C77E0A;
+    --warning-bg: #FEF4DB;
+    --warning-border: #F5DFA8;
+
+    /* Superfícies */
+    --bg: #FFF7F1;
+    --bg-alt: #FDF3EC;
+    --card-bg: #FFFFFF;
+    --text: #3D3550;
+    --text-muted: #867A93;
+    --border: #F1E3DC;
+
+    /* Formas e sombras */
+    --radius: 18px;
+    --radius-sm: 12px;
+    --radius-pill: 999px;
+    --shadow: 0 6px 18px rgba(255, 111, 97, 0.10);
+    --shadow-hover: 0 14px 34px rgba(255, 111, 97, 0.20);
+
+    /* Tipografia */
+    --font-display: 'Baloo 2', 'Segoe UI', cursive;
+    --font-body: 'Nunito', 'Segoe UI', sans-serif;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
 
 html,
 body {
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
-    background-color: #f1f5f9;
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    line-height: 1.55;
+}
+
+h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+}
+
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
+}
+
+::selection {
+    background: var(--coral-soft);
+    color: var(--coral-hover);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+    outline: 3px solid rgba(255, 111, 97, 0.35);
+    outline-offset: 1px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.25rem;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ==================== CABEÇALHO ==================== */
+.topbar {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.topbar-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-top: 0.7rem;
+    padding-bottom: 0.7rem;
+    flex-wrap: wrap;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    cursor: pointer;
+}
+
+.brand-icon {
+    font-size: 1.6rem;
+    width: 3rem;
+    height: 3rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--coral) 0%, #FF9668 100%);
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(255, 111, 97, 0.35);
+    transform: rotate(-10deg);
+    transition: transform 0.25s ease;
+}
+
+.brand:hover .brand-icon {
+    transform: rotate(8deg) scale(1.06);
+}
+
+.brand-title {
+    margin: 0;
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1.1;
+}
+
+.brand-title::after {
+    content: '.';
+    color: var(--coral);
+}
+
+.brand-subtitle {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+/* Navegação principal — pílulas alegres */
+.main-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 0.2rem;
+    scrollbar-width: none;
+}
+
+.main-nav::-webkit-scrollbar {
+    display: none;
+}
+
+.nav-link {
+    background: transparent;
+    border: none;
+    padding: 0.5rem 1.05rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.nav-link:hover {
+    background: var(--coral-soft);
+    color: var(--coral-hover);
+}
+
+.nav-link.active {
+    background: var(--coral);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(255, 111, 97, 0.35);
+}
+
+.nav-link.active:hover {
+    transform: translateY(-1px);
+}
+
+.nav-counter {
+    background: var(--coral-soft);
+    color: var(--coral-hover);
+    padding: 0.05rem 0.5rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.nav-link.active .nav-counter {
+    background: rgba(255, 255, 255, 0.28);
+    color: #ffffff;
+}
+
+.profile-switcher {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--bg-alt);
+    padding: 0.4rem 0.5rem 0.4rem 0.9rem;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border);
+    font-size: 0.83rem;
+}
+
+.profile-switcher label {
+    font-weight: 800;
+    color: var(--text-muted);
+}
+
+.profile-switcher select {
+    border: none;
+    border-radius: var(--radius-pill);
+    padding: 0.32rem 0.65rem;
+    font-weight: 800;
+    font-size: 0.83rem;
+    background: var(--turquesa-soft);
+    color: var(--turquesa-hover);
+    cursor: pointer;
+}
+
+@media (min-width: 760px) {
+    .main-nav {
+        order: 0;
+        width: auto;
+        padding-bottom: 0;
+    }
+}
+
+/* ==================== BOTÕES ==================== */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1.3rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.9rem;
+    font-weight: 800;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: var(--coral);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(255, 111, 97, 0.30);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--coral-hover);
+    box-shadow: 0 6px 16px rgba(255, 111, 97, 0.40);
+}
+
+.btn-outline {
+    background: #ffffff;
+    border-color: var(--border);
+    color: var(--text);
+    box-shadow: 0 2px 6px rgba(61, 53, 80, 0.05);
+}
+
+.btn-outline:hover:not(:disabled) {
+    background: var(--coral-soft);
+    border-color: transparent;
+    color: var(--coral-hover);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: #ffffff;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: var(--danger-hover);
+}
+
+.btn-success {
+    background: var(--success);
+    color: #ffffff;
+}
+
+.btn-success:hover:not(:disabled) {
+    background: #178A53;
+}
+
+.btn-sm {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.8rem;
+}
+
+/* ==================== BADGES ==================== */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.22rem 0.7rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.badge-disponivel {
+    background: var(--success-bg);
+    color: var(--success);
+    border: 1px solid var(--success-border);
+}
+
+.badge-analise {
+    background: var(--warning-bg);
+    color: var(--warning);
+    border: 1px solid var(--warning-border);
+}
+
+.badge-adotado {
+    background: var(--turquesa-soft);
+    color: var(--turquesa-hover);
+    border: 1px solid rgba(18, 181, 165, 0.35);
+}
+
+.badge-temporario {
+    background: var(--violeta-soft);
+    color: var(--violeta);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+}
+
+.badge-recusada {
+    background: var(--danger-bg);
+    color: var(--danger);
+    border: 1px solid var(--danger-border);
+}
+
+.badge-admin {
+    background: var(--text);
+    color: #ffffff;
+    margin-bottom: 0.4rem;
+}
+
+/* ==================== ALERTAS E NOTIFICAÇÕES ==================== */
+.alert {
+    padding: 0.85rem 1.1rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.alert-danger {
+    background: var(--danger-bg);
+    color: #A5271F;
+    border: 1px solid var(--danger-border);
+}
+
+.alert-success {
+    background: var(--success-bg);
+    color: #136A41;
+    border: 1px solid var(--success-border);
+}
+
+.toast-container {
+    position: fixed;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    left: 1.25rem;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 380px;
+    margin-left: auto;
+}
+
+.toast {
+    background: var(--text);
+    color: #ffffff;
+    padding: 0.9rem 1.15rem;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 12px 28px rgba(61, 53, 80, 0.28);
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-left: 4px solid var(--turquesa);
+    animation: toast-in 0.25s ease;
+}
+
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.toast.toast-error {
+    border-left-color: var(--coral);
+}
+
+.toast.toast-success {
+    border-left-color: var(--turquesa);
+}
+
+@media (min-width: 480px) {
+    .toast-container {
+        left: auto;
+    }
+}
+
+/* ==================== ESTADO VAZIO (usado em listas e grid) ==================== */
+.empty-state {
+    background: var(--card-bg);
+    border: 2px dashed #F3CFC5;
+    border-radius: var(--radius);
+    padding: 2.75rem 1.5rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-weight: 600;
+    grid-column: 1 / -1;
+}
+
+.empty-state .empty-emoji {
+    display: block;
+    font-size: 2.6rem;
+    margin-bottom: 0.5rem;
 }

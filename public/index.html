@@ -1,14 +1,576 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adota Pet - Sistema de Adoção de Animais</title>
+    <title>AdotaPet — Sistema de Gestão de Adoção e Lar Temporário</title>
+
+    <!-- Tipografia alegre: Baloo 2 (títulos) + Nunito (texto) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="css/global.css">
 </head>
 
 <body>
+    <!-- Cabeçalho Principal e Navegação da SPA -->
+    <header class="topbar">
+        <div class="container topbar-inner">
+            <div class="brand" id="btn-home">
+                <span class="brand-icon" aria-hidden="true">🐾</span>
+                <div>
+                    <h1 class="brand-title">AdotaPet</h1>
+                    <span class="brand-subtitle">Sistema de Adoção &amp; Lar Temporário</span>
+                </div>
+            </div>
+
+            <nav class="main-nav" aria-label="Navegação principal">
+                <button type="button" class="nav-link active" data-view="view-catalogo">
+                    Catálogo de Pets
+                </button>
+                <button type="button" class="nav-link" data-view="view-minhas-solicitacoes">
+                    Solicitações <span id="badge-total-solicitacoes" class="nav-counter">0</span>
+                </button>
+                <button type="button" class="nav-link nav-ong hidden" id="nav-painel-ong" data-view="view-painel-ong">
+                    Painel da ONG
+                </button>
+            </nav>
+
+            <!-- Seletor de Perfil de Acesso (RNF03) -->
+            <div class="profile-switcher">
+                <label for="select-perfil-ativo">Perfil:</label>
+                <select id="select-perfil-ativo" aria-label="Selecionar perfil de acesso">
+                    <option value="ADOTANTE">Adotante</option>
+                    <option value="GESTOR_ONG">Gestor da ONG</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- Container para Notificações Flutuantes (Toast) -->
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <!-- Área Principal da SPA -->
+    <main class="container main-content">
+
+        <!-- SEÇÃO 1: CATÁLOGO E FILTROS (UC01 / RF04 / RNF01) -->
+        <section id="view-catalogo" class="spa-view">
+            <div class="hero-banner">
+                <span class="hero-paw hero-paw-1" aria-hidden="true">🐾</span>
+                <span class="hero-paw hero-paw-2" aria-hidden="true">🐾</span>
+                <div class="hero-text">
+                    <h2>Catálogo de Adoção Responsável e Lar Temporário</h2>
+                    <p>Consulte os cães e gatos resgatados, verifique a ficha médica completa e envie sua solicitação de adoção ou acolhimento temporário.</p>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat-pill">
+                        <strong id="stat-disponiveis">0</strong>
+                        <span>Disponíveis</span>
+                    </div>
+                    <div class="stat-pill">
+                        <strong id="stat-analise">0</strong>
+                        <span>Em Análise</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barra de Filtragem Assíncrona -->
+            <form id="form-filtros" class="filter-bar" aria-label="Filtros do catálogo de animais">
+                <div class="filter-group">
+                    <label for="filtro-busca">Buscar por nome</label>
+                    <input type="text" id="filtro-busca" placeholder="Digite o nome do animal...">
+                </div>
+
+                <div class="filter-group">
+                    <label for="filtro-especie">Espécie</label>
+                    <select id="filtro-especie">
+                        <option value="TODOS">Todas</option>
+                        <option value="Cachorro">Cachorro</option>
+                        <option value="Gato">Gato</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="filtro-porte">Porte</label>
+                    <select id="filtro-porte">
+                        <option value="TODOS">Todos</option>
+                        <option value="PEQUENO">Pequeno</option>
+                        <option value="MEDIO">Médio</option>
+                        <option value="GRANDE">Grande</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="filtro-sexo">Sexo</label>
+                    <select id="filtro-sexo">
+                        <option value="TODOS">Todos</option>
+                        <option value="M">Macho</option>
+                        <option value="F">Fêmea</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="filtro-modalidade">Modalidade</label>
+                    <select id="filtro-modalidade">
+                        <option value="TODOS">Todas</option>
+                        <option value="ADOCAO_DEFINITIVA">Adoção Definitiva</option>
+                        <option value="LAR_TEMPORARIO">Lar Temporário</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="filtro-status">Status</label>
+                    <select id="filtro-status">
+                        <option value="TODOS">Todos</option>
+                        <option value="DISPONIVEL">Disponível</option>
+                        <option value="EM_ANALISE">Em Análise</option>
+                        <option value="ADOTADO">Adotado</option>
+                        <option value="EM_LAR_TEMPORARIO">Em Lar Temporário</option>
+                    </select>
+                </div>
+
+                <div class="filter-actions">
+                    <button type="button" id="btn-limpar-filtros" class="btn btn-outline">Limpar Filtros</button>
+                </div>
+            </form>
+
+            <!-- Container do Grid de Cards (Populado dinamicamente via JS) -->
+            <div id="catalogo-grid" class="pets-grid" aria-live="polite"></div>
+        </section>
+
+        <!-- SEÇÃO 2: ACOMPANHAMENTO DE SOLICITAÇÕES -->
+        <section id="view-minhas-solicitacoes" class="spa-view hidden">
+            <header class="section-header">
+                <h2>Acompanhamento de Solicitações</h2>
+                <p>Histórico de solicitações registradas, status da avaliação e agendamentos de visitas presenciais.</p>
+            </header>
+
+            <div id="lista-minhas-solicitacoes" class="requests-list"></div>
+        </section>
+
+        <!-- SEÇÃO 3: PAINEL ADMINISTRATIVO DA ONG (UC04, UC06, UC07 / RNF03) -->
+        <section id="view-painel-ong" class="spa-view hidden">
+            <header class="section-header admin-header">
+                <span class="badge badge-admin">Acesso Restrito — Gestor da ONG (RNF03)</span>
+                <h2>Painel de Gestão da ONG</h2>
+                <p>Gerencie solicitações de adoção, fichas médicas, cadastros de animais resgatados e visitas presenciais.</p>
+            </header>
+
+            <!-- Navegação Interna do Painel da ONG -->
+            <div class="admin-tabs" role="tablist">
+                <button type="button" class="admin-tab active" data-admin-tab="tab-solicitacoes">
+                    Solicitações (<span id="badge-pendentes-ong">0</span>)
+                </button>
+                <button type="button" class="admin-tab" data-admin-tab="tab-animais-ong">
+                    Animais &amp; Fichas Médicas
+                </button>
+                <button type="button" class="admin-tab" data-admin-tab="tab-novo-animal">
+                    Cadastrar Animal
+                </button>
+                <button type="button" class="admin-tab" data-admin-tab="tab-visitas-ong">
+                    Visitas Presenciais (<span id="badge-visitas-ong">0</span>)
+                </button>
+            </div>
+
+            <!-- ABA 1: AVALIAR SOLICITAÇÕES (UC04) -->
+            <div id="tab-solicitacoes" class="admin-tab-content">
+                <div class="admin-filter-row">
+                    <label for="filtro-status-solicitacao">Filtrar por status:</label>
+                    <select id="filtro-status-solicitacao">
+                        <option value="TODOS">Todas</option>
+                        <option value="PENDENTE">Pendentes</option>
+                        <option value="APROVADA">Aprovadas</option>
+                        <option value="RECUSADA">Recusadas</option>
+                    </select>
+                </div>
+
+                <div id="lista-solicitacoes-ong" class="requests-list"></div>
+            </div>
+
+            <!-- ABA 2: GESTÃO DE FICHAS MÉDICAS (RF03 / RN04) -->
+            <div id="tab-animais-ong" class="admin-tab-content hidden">
+                <div class="info-callout">
+                    <strong>Regra de Negócio RN04:</strong> Animais com idade igual ou superior a 6 meses devem constar como castrados na ficha médica para que sua adoção definitiva seja aprovada.
+                </div>
+
+                <div id="lista-animais-ong" class="admin-table-wrapper"></div>
+            </div>
+
+            <!-- ABA 3: CADASTRO DE ANIMAL E FICHA MÉDICA (UC07 / RF02 / RF03) -->
+            <div id="tab-novo-animal" class="admin-tab-content hidden">
+                <form id="form-novo-animal" class="admin-form-card" novalidate>
+                    <h3>Cadastrar Novo Animal e Ficha Médica</h3>
+                    <p class="form-hint">Preencha os atributos gerais, as características específicas da espécie e os dados clínicos iniciais.</p>
+
+                    <div id="alerta-novo-animal" class="alert hidden"></div>
+
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label for="novo-nome">Nome do Animal *</label>
+                            <input type="text" id="novo-nome" required>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="novo-especie">Espécie *</label>
+                            <select id="novo-especie" required>
+                                <option value="Cachorro">Cachorro</option>
+                                <option value="Gato">Gato</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="novo-idade">Idade (em meses) *</label>
+                            <input type="number" id="novo-idade" min="0" required>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="novo-porte">Porte *</label>
+                            <select id="novo-porte" required>
+                                <option value="PEQUENO">Pequeno</option>
+                                <option value="MEDIO">Médio</option>
+                                <option value="GRANDE">Grande</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="novo-sexo">Sexo *</label>
+                            <select id="novo-sexo" required>
+                                <option value="M">Macho</option>
+                                <option value="F">Fêmea</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="novo-modalidade">Modalidade *</label>
+                            <select id="novo-modalidade" required>
+                                <option value="ADOCAO_DEFINITIVA">Adoção Definitiva</option>
+                                <option value="LAR_TEMPORARIO">Lar Temporário</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="novo-foto">URL da Foto</label>
+                        <input type="url" id="novo-foto">
+                    </div>
+
+                    <div class="form-field">
+                        <label for="novo-descricao">Descrição / Temperamento</label>
+                        <textarea id="novo-descricao" rows="2"></textarea>
+                    </div>
+
+                    <!-- Atributos Específicos: Cachorro -->
+                    <fieldset id="campos-especificos-cachorro" class="species-fieldset">
+                        <legend>Características Específicas — Cachorro</legend>
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="novo-nivel-energia">Nível de Energia</label>
+                                <select id="novo-nivel-energia">
+                                    <option value="BAIXO">Baixo</option>
+                                    <option value="MEDIO" selected>Médio</option>
+                                    <option value="ALTO">Alto</option>
+                                </select>
+                            </div>
+                            <div class="form-field checkbox-field">
+                                <label>
+                                    <input type="checkbox" id="novo-sociavel-caes" checked>
+                                    Sociável com outros cães
+                                </label>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- Atributos Específicos: Gato -->
+                    <fieldset id="campos-especificos-gato" class="species-fieldset hidden">
+                        <legend>Características Específicas — Gato</legend>
+                        <div class="form-grid">
+                            <div class="form-field checkbox-field">
+                                <label>
+                                    <input type="checkbox" id="novo-testado-fiv">
+                                    Testado para FIV/FeLV
+                                </label>
+                            </div>
+                            <div class="form-field checkbox-field">
+                                <label>
+                                    <input type="checkbox" id="novo-negativo-fiv">
+                                    Negativo para FIV/FeLV
+                                </label>
+                            </div>
+                            <div class="form-field checkbox-field">
+                                <label>
+                                    <input type="checkbox" id="novo-adaptado-apto" checked>
+                                    Adaptado a Apartamento
+                                </label>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- Ficha Médica (Composição 1:1) -->
+                    <fieldset class="medical-fieldset">
+                        <legend>Ficha Médica Inicial</legend>
+                        <div class="form-grid">
+                            <div class="form-field checkbox-field">
+                                <label>
+                                    <input type="checkbox" id="novo-castrado">
+                                    Animal Castrado
+                                </label>
+                            </div>
+                            <div class="form-field checkbox-field">
+                                <label>
+                                    <input type="checkbox" id="novo-vermifugado">
+                                    Animal Vermifugado
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="novo-obs-clinicas">Observações Clínicas</label>
+                            <textarea id="novo-obs-clinicas" rows="2"></textarea>
+                        </div>
+
+                        <div class="vaccine-builder">
+                            <h4>Registro de Vacina Inicial (Opcional)</h4>
+                            <div class="form-grid">
+                                <div class="form-field">
+                                    <label for="novo-vacina-nome">Nome da Vacina</label>
+                                    <input type="text" id="novo-vacina-nome">
+                                </div>
+                                <div class="form-field">
+                                    <label for="novo-vacina-lote">Lote</label>
+                                    <input type="text" id="novo-vacina-lote">
+                                </div>
+                                <div class="form-field">
+                                    <label for="novo-vacina-data">Data de Aplicação</label>
+                                    <input type="date" id="novo-vacina-data">
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Salvar Cadastro</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- ABA 4: VISITAS PRESENCIAIS (UC06 / RF08) -->
+            <div id="tab-visitas-ong" class="admin-tab-content hidden">
+                <div id="lista-visitas-ong" class="requests-list"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL 1: DETALHES DO ANIMAL E FICHA MÉDICA -->
+    <div id="modal-detalhes" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-detalhes-titulo">
+        <div class="modal-card modal-lg">
+            <div class="modal-header">
+                <h3 id="modal-detalhes-titulo">Detalhes e Ficha Médica</h3>
+                <button type="button" class="modal-close" data-close-modal="modal-detalhes" aria-label="Fechar">&times;</button>
+            </div>
+            <div id="modal-detalhes-body" class="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: SOLICITAÇÃO DE ADOÇÃO E QUESTIONÁRIO DE PERFIL (UC02 <<include>> UC03) -->
+    <div id="modal-adocao" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-adocao-titulo">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-adocao-titulo">Solicitar Adoção / Lar Temporário</h3>
+                <button type="button" class="modal-close" data-close-modal="modal-adocao" aria-label="Fechar">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="resumo-pet-adocao" class="pet-mini-summary"></div>
+                <div id="alerta-erro-adocao" class="alert alert-danger hidden"></div>
+
+                <form id="form-adocao" novalidate>
+                    <input type="hidden" id="adocao-animal-id">
+
+                    <fieldset class="form-section">
+                        <legend>Dados do Adotante</legend>
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="adocao-nome">Nome Completo *</label>
+                                <input type="text" id="adocao-nome" required>
+                            </div>
+                            <div class="form-field">
+                                <label for="adocao-cpf">CPF *</label>
+                                <input type="text" id="adocao-cpf" required>
+                            </div>
+                            <div class="form-field">
+                                <label for="adocao-idade">Idade (anos) *</label>
+                                <input type="number" id="adocao-idade" min="1" required>
+                            </div>
+                            <div class="form-field">
+                                <label for="adocao-telefone">Telefone *</label>
+                                <input type="text" id="adocao-telefone" required>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="form-section">
+                        <legend>Questionário de Perfil Residencial (UC03)</legend>
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="adocao-moradia">Tipo de Moradia *</label>
+                                <select id="adocao-moradia" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="CASA">Casa</option>
+                                    <option value="APARTAMENTO">Apartamento</option>
+                                    <option value="CHACARA">Chácara / Sítio</option>
+                                </select>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="adocao-telas">Possui Telas de Proteção? *</label>
+                                <select id="adocao-telas" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="true">Sim</option>
+                                    <option value="false">Não</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="adocao-modalidade">Modalidade Pretendida *</label>
+                            <select id="adocao-modalidade" required>
+                                <option value="ADOCAO_DEFINITIVA">Adoção Definitiva</option>
+                                <option value="LAR_TEMPORARIO">Lar Temporário</option>
+                            </select>
+                        </div>
+                    </fieldset>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" data-close-modal="modal-adocao">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btn-enviar-solicitacao">Confirmar Solicitação</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: ATUALIZAR FICHA MÉDICA (RF03 / RN04) -->
+    <div id="modal-ficha-medica" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-ficha-titulo">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-ficha-titulo">Atualizar Ficha Médica</h3>
+                <button type="button" class="modal-close" data-close-modal="modal-ficha-medica" aria-label="Fechar">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="resumo-pet-ficha" class="pet-mini-summary"></div>
+                <div id="alerta-ficha-medica" class="alert alert-danger hidden"></div>
+
+                <form id="form-editar-ficha" novalidate>
+                    <input type="hidden" id="ficha-animal-id">
+
+                    <div class="form-grid">
+                        <div class="form-field checkbox-field">
+                            <label>
+                                <input type="checkbox" id="ficha-castrado">
+                                Animal Castrado
+                            </label>
+                        </div>
+                        <div class="form-field checkbox-field">
+                            <label>
+                                <input type="checkbox" id="ficha-vermifugado">
+                                Animal Vermifugado
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="ficha-observacoes">Observações Clínicas</label>
+                        <textarea id="ficha-observacoes" rows="3"></textarea>
+                    </div>
+
+                    <fieldset class="form-section">
+                        <legend>Adicionar Vacina</legend>
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="ficha-vacina-nome">Nome da Vacina</label>
+                                <input type="text" id="ficha-vacina-nome">
+                            </div>
+                            <div class="form-field">
+                                <label for="ficha-vacina-lote">Lote</label>
+                                <input type="text" id="ficha-vacina-lote">
+                            </div>
+                            <div class="form-field">
+                                <label for="ficha-vacina-data">Data de Aplicação</label>
+                                <input type="date" id="ficha-vacina-data">
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" data-close-modal="modal-ficha-medica">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: AGENDAR VISITA PRESENCIAL (UC06 / RF08) -->
+    <div id="modal-visita" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-visita-titulo">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-visita-titulo">Agendar Visita Presencial</h3>
+                <button type="button" class="modal-close" data-close-modal="modal-visita" aria-label="Fechar">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="resumo-visita-solicitacao" class="pet-mini-summary"></div>
+                <div id="alerta-visita" class="alert alert-danger hidden"></div>
+
+                <form id="form-agendar-visita" novalidate>
+                    <input type="hidden" id="visita-solicitacao-id">
+
+                    <div class="form-field">
+                        <label for="visita-data-hora">Data e Horário *</label>
+                        <input type="datetime-local" id="visita-data-hora" required>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="visita-observacoes">Observações</label>
+                        <textarea id="visita-observacoes" rows="3"></textarea>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" data-close-modal="modal-visita">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Agendar Visita</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 5: RECUSAR SOLICITAÇÃO (FA01 do UC04) -->
+    <div id="modal-recusar" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-recusar-titulo">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-recusar-titulo">Recusar Solicitação</h3>
+                <button type="button" class="modal-close" data-close-modal="modal-recusar" aria-label="Fechar">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="alerta-recusar" class="alert alert-danger hidden"></div>
+
+                <form id="form-recusar-solicitacao" novalidate>
+                    <input type="hidden" id="recusar-solicitacao-id">
+
+                    <div class="form-field">
+                        <label for="recusar-justificativa">Justificativa da Recusa *</label>
+                        <textarea id="recusar-justificativa" rows="3" required></textarea>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" data-close-modal="modal-recusar">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Confirmar Recusa</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script type="module" src="js/app.js"></script>
 </body>
