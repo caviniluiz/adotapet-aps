@@ -23,8 +23,7 @@ npm start
 ```
 *(Ou `npm run dev` para execução em modo desenvolvimento com `nodemon`)*
 
-* **API Status:** `http://localhost:3000/api/status`
-* **API Health:** `http://localhost:3000/api/health`
+* **API Health Check:** `http://localhost:3000/api/health`
 
 ### 3. Executar a suíte de testes automatizados (POO, Rotas e RN01 a RN04)
 ```bash
