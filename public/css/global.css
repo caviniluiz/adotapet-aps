@@ -480,3 +480,48 @@ a:focus-visible {
     font-size: 2.6rem;
     margin-bottom: 0.5rem;
 }
+
+/* ==================== ESTADOS DE LOADING (Item 10) ==================== */
+.btn.is-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.78;
+}
+
+.spinner-inline {
+    display: inline-block;
+    width: 0.95rem;
+    height: 0.95rem;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin-adotapet 0.65s linear infinite;
+}
+
+.loading-state {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2.75rem 1.5rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-weight: 700;
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.loading-state .spinner-inline {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-width: 3px;
+    color: var(--turquesa);
+}
+
+@keyframes spin-adotapet {
+    to {
+        transform: rotate(360deg);
+    }
+}

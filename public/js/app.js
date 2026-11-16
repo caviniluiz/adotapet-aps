@@ -1,7 +1,7 @@
 /* ============================================================
    APP — Lógica de interface da SPA AdotaPet
-   (Integração com API REST: carga inicial, catálogo/filtros e
-    envio de solicitação de adoção)
+   (Integração completa com API REST: carga inicial, catálogo,
+    solicitação de adoção, painel do gestor da ONG e loading)
    ============================================================ */
 
 import { state, setAdotanteAtivoId } from './state.js';
@@ -186,9 +186,60 @@ function mostrarErroModal(idAlerta, msg) {
     alerta.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+function obterMinhasSolicitacoes() {
+    if (!state.adotanteAtivoId) return [];
+    return state.solicitacoes.filter(s => Number(s.adotanteId) === Number(state.adotanteAtivoId));
+}
+
+async function executarComLoading(botao, textoLoading, acaoAsync) {
+    const htmlOriginal = botao ? botao.innerHTML : null;
+    const disabledOriginal = botao ? botao.disabled : false;
+
+    if (botao) {
+        botao.disabled = true;
+        botao.classList.add('is-loading');
+        botao.innerHTML = `<span class="spinner-inline" aria-hidden="true"></span> ${escapar(textoLoading)}`;
+    }
+
+    try {
+        return await acaoAsync();
+    } finally {
+        if (botao) {
+            botao.disabled = disabledOriginal;
+            botao.classList.remove('is-loading');
+            botao.innerHTML = htmlOriginal;
+        }
+    }
+}
+
+async function sincronizarEstadoAPI() {
+    const [todosAnimais, animaisFiltrados, solicitacoes, visitas] = await Promise.all([
+        api.listarAnimais({}),
+        api.listarAnimais(state.filtros),
+        api.listarSolicitacoes(),
+        api.listarVisitas()
+    ]);
+
+    state.todosAnimais = todosAnimais;
+    state.animais = animaisFiltrados;
+    state.solicitacoes = solicitacoes;
+    state.visitas = visitas;
+
+    renderAll();
+}
+
 /* ==================== CARGA E FILTROS VIA API ==================== */
 
 async function carregarDadosIniciais() {
+    const grid = $('catalogo-grid');
+    if (grid) {
+        grid.innerHTML = `
+            <div class="loading-state">
+                <span class="spinner-inline" aria-hidden="true"></span>
+                Carregando animais do abrigo...
+            </div>`;
+    }
+
     try {
         const [todosAnimais, solicitacoes, visitas, perfisRes] = await Promise.all([
             api.listarAnimais({}),
@@ -205,6 +256,13 @@ async function carregarDadosIniciais() {
 
         renderAll();
     } catch (erro) {
+        if (grid) {
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <span class="empty-emoji">⚠️</span>
+                    Não foi possível carregar o catálogo: ${escapar(erro.message)}
+                </div>`;
+        }
         showToast(erro.message || 'Erro ao carregar dados iniciais da API.', 'error');
     }
 }
@@ -347,19 +405,20 @@ function verDetalhes(animalId) {
 
 function renderMinhasSolicitacoes() {
     const lista = $('lista-minhas-solicitacoes');
+    const minhas = obterMinhasSolicitacoes();
 
-    if (state.solicitacoes.length === 0) {
+    if (minhas.length === 0) {
         lista.innerHTML = `
             <div class="empty-state">
                 <span class="empty-emoji">📋</span>
-                Você ainda não registrou solicitações.<br>
-                Encontre um pet no catálogo e clique em <strong>Adotar</strong>!
+                Você ainda não registrou solicitações neste navegador.<br>
+                Encontre um pet disponível no catálogo e clique em <strong>Adotar</strong>!
             </div>`;
         atualizarContadores();
         return;
     }
 
-    lista.innerHTML = state.solicitacoes.map(s => solicitacaoCardHtml(s, { modoAdotante: true })).join('');
+    lista.innerHTML = minhas.map(s => solicitacaoCardHtml(s, { modoAdotante: true })).join('');
     atualizarContadores();
 }
 
@@ -402,17 +461,25 @@ function solicitacaoCardHtml(s, { modoAdotante }) {
     if (!modoAdotante) {
         if (s.status === 'PENDENTE') {
             acoes = `
+                <button type="button" class="btn btn-outline btn-sm" data-acao="editar-ficha" data-id="${animal.id}">🩺 Editar Ficha</button>
                 <button type="button" class="btn btn-outline btn-sm" data-acao="abrir-visita" data-id="${s.id}">📅 Agendar Visita</button>
                 <button type="button" class="btn btn-success btn-sm" data-acao="aprovar" data-id="${s.id}">✅ Aprovar</button>
                 <button type="button" class="btn btn-danger btn-sm" data-acao="recusar" data-id="${s.id}">✖ Recusar</button>`;
-        } else if (s.status === 'APROVADA') {
-            acoes = `<button type="button" class="btn btn-primary btn-sm" data-acao="abrir-visita" data-id="${s.id}">📅 Agendar Visita</button>`;
-        } else {
-            acoes = justificativa ? `<span class="alert alert-danger" style="margin:0">Justificativa: ${escapar(justificativa)}</span>` : '';
+        } else if (s.status === 'RECUSADA' && justificativa) {
+            acoes = `<span class="alert alert-danger" style="margin:0">Justificativa: ${escapar(justificativa)}</span>`;
         }
     } else if (justificativa && s.status === 'RECUSADA') {
         acoes = `<span class="alert alert-danger" style="margin:0">Justificativa: ${escapar(justificativa)}</span>`;
     }
+
+    const blocoVisita = s.visita
+        ? `<div class="request-box">
+                <h4>Visita Presencial (UC06)</h4>
+                <p><span>Data e hora:</span> ${formatarDataHora(s.visita.dataHora)}</p>
+                <p><span>Status:</span> ${s.visita.realizada ? '✅ Realizada' : '⏳ Agendada'}</p>
+                ${s.visita.observacoes ? `<p><span>Observações:</span> ${escapar(s.visita.observacoes)}</p>` : ''}
+           </div>`
+        : '';
 
     return `
         <article class="request-card">
@@ -447,6 +514,7 @@ function solicitacaoCardHtml(s, { modoAdotante }) {
                     <p><span>Modalidade:</span> ${MODALIDADE_LABEL[modalidade]}</p>
                     <p><span>Solicitada em:</span> ${formatarDataHora(s.dataSolicitacao)}</p>
                 </div>
+                ${blocoVisita}
             </div>
 
             ${acoes ? `<div class="request-actions">${acoes}</div>` : ''}
@@ -455,8 +523,9 @@ function solicitacaoCardHtml(s, { modoAdotante }) {
 
 function renderAdminAnimais() {
     const wrapper = $('lista-animais-ong');
+    const animaisAbrigo = state.todosAnimais.length > 0 ? state.todosAnimais : state.animais;
 
-    if (state.animais.length === 0) {
+    if (animaisAbrigo.length === 0) {
         wrapper.innerHTML = `
             <div class="empty-state">
                 <span class="empty-emoji">🐶</span>
@@ -465,7 +534,7 @@ function renderAdminAnimais() {
         return;
     }
 
-    const linhas = state.animais.map(a => {
+    const linhas = animaisAbrigo.map(a => {
         const ficha = a.fichaMedica || {};
         const foto = a.fotoUrl || FOTOS_DEFAULT[a.especie];
         return `
@@ -546,7 +615,7 @@ function renderAdminVisitas() {
 /* ==================== CONTADORES / BADGES ==================== */
 
 function atualizarContadores() {
-    const total = state.solicitacoes.length;
+    const total = obterMinhasSolicitacoes().length;
     const pendentes = state.solicitacoes.filter(s => s.status === 'PENDENTE').length;
     const visitasAgendadas = state.visitas.filter(v => (v.status ? v.status === 'AGENDADA' : !v.realizada)).length;
 
@@ -605,46 +674,50 @@ async function enviarSolicitacaoAdocao(e) {
 
     $('alerta-erro-adocao').classList.add('hidden');
 
+    const btnSubmit = e.submitter || $('btn-enviar-solicitacao');
+
     try {
-        const resposta = await api.enviarSolicitacao({
-            animalId,
-            modalidade,
-            adotante: {
-                nome,
-                cpf,
-                idade,
-                telefone,
-                tipoMoradia,
-                possuiTelasProtecao: telas === 'true'
+        await executarComLoading(btnSubmit, 'Enviando...', async () => {
+            const resposta = await api.enviarSolicitacao({
+                animalId,
+                modalidade,
+                adotante: {
+                    nome,
+                    cpf,
+                    idade,
+                    telefone,
+                    tipoMoradia,
+                    possuiTelasProtecao: telas === 'true'
+                }
+            });
+
+            if (resposta.solicitacao?.adotanteId) {
+                setAdotanteAtivoId(resposta.solicitacao.adotanteId);
             }
+
+            await sincronizarEstadoAPI();
+
+            closeModal('modal-adocao');
+            $('form-adocao').reset();
+            showToast(resposta.mensagem || 'Solicitação registrada com sucesso!', 'success');
         });
-
-        if (resposta.solicitacao?.adotanteId) {
-            setAdotanteAtivoId(resposta.solicitacao.adotanteId);
-        }
-
-        const [todosAnimais, animaisFiltrados, solicitacoes] = await Promise.all([
-            api.listarAnimais({}),
-            api.listarAnimais(state.filtros),
-            api.listarSolicitacoes()
-        ]);
-
-        state.todosAnimais = todosAnimais;
-        state.animais = animaisFiltrados;
-        state.solicitacoes = solicitacoes;
-
-        closeModal('modal-adocao');
-        $('form-adocao').reset();
-        showToast(resposta.mensagem || 'Solicitação registrada com sucesso!', 'success');
-        renderAll();
     } catch (erro) {
         const prefixo = erro.regraViolada ? `[${erro.regraViolada}] ` : '';
         mostrarErroModal('alerta-erro-adocao', `${prefixo}${erro.message}`);
     }
 }
 
-function aprovarSolicitacao(_solicitacaoId) {
-    // TODO: Integrar com PATCH /api/solicitacoes/:id/avaliar (acao: 'APROVAR')
+async function aprovarSolicitacao(solicitacaoId, btnEl) {
+    try {
+        await executarComLoading(btnEl, 'Aprovando...', async () => {
+            const resposta = await api.avaliarSolicitacao(solicitacaoId, 'APROVAR');
+            await sincronizarEstadoAPI();
+            showToast(resposta.mensagem || 'Solicitação aprovada com sucesso!', 'success');
+        });
+    } catch (erro) {
+        const prefixo = erro.regraViolada ? `[${erro.regraViolada}] ` : '';
+        showToast(`${prefixo}${erro.message}`, 'error');
+    }
 }
 
 function abrirModalRecusa(solicitacaoId) {
@@ -654,7 +727,7 @@ function abrirModalRecusa(solicitacaoId) {
     openModal('modal-recusar');
 }
 
-function confirmarRecusa(e) {
+async function confirmarRecusa(e) {
     e.preventDefault();
     const justificativa = $('recusar-justificativa').value.trim();
     if (!justificativa) {
@@ -662,7 +735,20 @@ function confirmarRecusa(e) {
         return;
     }
 
-    // TODO: Integrar com PATCH /api/solicitacoes/:id/avaliar (acao: 'RECUSAR', justificativa)
+    const id = Number($('recusar-solicitacao-id').value);
+    const btnSubmit = e.submitter || e.target.querySelector('[type="submit"]');
+    $('alerta-recusar').classList.add('hidden');
+
+    try {
+        await executarComLoading(btnSubmit, 'Recusando...', async () => {
+            const resposta = await api.avaliarSolicitacao(id, 'RECUSAR', justificativa);
+            await sincronizarEstadoAPI();
+            closeModal('modal-recusar');
+            showToast(resposta.mensagem || 'Solicitação recusada e animal liberado no catálogo.', 'success');
+        });
+    } catch (erro) {
+        mostrarErroModal('alerta-recusar', erro.message);
+    }
 }
 
 /* ==================== AÇÕES: VISITAS ==================== */
@@ -690,7 +776,7 @@ function abrirModalVisita(solicitacaoId) {
     openModal('modal-visita');
 }
 
-function agendarVisita(e) {
+async function agendarVisita(e) {
     e.preventDefault();
 
     const dataHora = $('visita-data-hora').value;
@@ -699,11 +785,33 @@ function agendarVisita(e) {
         return;
     }
 
-    // TODO: Integrar com POST /api/solicitacoes/:id/visita
+    const solicitacaoId = Number($('visita-solicitacao-id').value);
+    const observacoes = $('visita-observacoes').value.trim();
+    const btnSubmit = e.submitter || e.target.querySelector('[type="submit"]');
+    $('alerta-visita').classList.add('hidden');
+
+    try {
+        await executarComLoading(btnSubmit, 'Agendando...', async () => {
+            const resposta = await api.agendarVisita(solicitacaoId, dataHora, observacoes);
+            await sincronizarEstadoAPI();
+            closeModal('modal-visita');
+            showToast(resposta.mensagem || 'Visita presencial agendada!', 'success');
+        });
+    } catch (erro) {
+        mostrarErroModal('alerta-visita', erro.message);
+    }
 }
 
-function realizarVisita(_visitaId) {
-    // TODO: Integrar com PATCH /api/visitas/:id/confirmar
+async function realizarVisita(visitaId, btnEl) {
+    try {
+        await executarComLoading(btnEl, 'Confirmando...', async () => {
+            const resposta = await api.confirmarVisita(visitaId);
+            await sincronizarEstadoAPI();
+            showToast(resposta.mensagem || 'Visita confirmada como realizada!', 'success');
+        });
+    } catch (erro) {
+        showToast(erro.message, 'error');
+    }
 }
 
 /* ==================== AÇÕES: FICHA MÉDICA ==================== */
@@ -735,36 +843,134 @@ function abrirModalFicha(animalId) {
     openModal('modal-ficha-medica');
 }
 
-function salvarFichaMedica(e) {
+async function salvarFichaMedica(e) {
     e.preventDefault();
 
+    const animalId = Number($('ficha-animal-id').value);
+    const castrado = $('ficha-castrado').checked;
+    const vermifugado = $('ficha-vermifugado').checked;
+    const observacoesClinicas = $('ficha-observacoes').value.trim();
+
     const novaVacinaNome = $('ficha-vacina-nome').value.trim();
+    const novaVacinaLote = $('ficha-vacina-lote').value.trim();
     const novaVacinaData = $('ficha-vacina-data').value;
-    if (novaVacinaNome && !novaVacinaData) {
-        mostrarErroModal('alerta-ficha-medica', 'Informe a data de aplicação da vacina informada.');
+
+    if (novaVacinaNome && (!novaVacinaLote || !novaVacinaData)) {
+        mostrarErroModal('alerta-ficha-medica', 'Para adicionar uma vacina, informe nome, lote e data de aplicação.');
         return;
     }
 
-    // TODO: Integrar com PATCH /api/animais/:id/ficha-medica
+    const payload = {
+        castrado,
+        vermifugado,
+        observacoesClinicas,
+        ...(novaVacinaNome
+            ? {
+                novaVacina: {
+                    nomeVacina: novaVacinaNome,
+                    lote: novaVacinaLote,
+                    dataAplicacao: novaVacinaData
+                }
+            }
+            : {})
+    };
+
+    const btnSubmit = e.submitter || e.target.querySelector('[type="submit"]');
+    $('alerta-ficha-medica').classList.add('hidden');
+
+    try {
+        await executarComLoading(btnSubmit, 'Salvando...', async () => {
+            const resposta = await api.atualizarFichaMedica(animalId, payload);
+            await sincronizarEstadoAPI();
+            closeModal('modal-ficha-medica');
+            showToast(resposta.mensagem || 'Ficha médica atualizada com sucesso!', 'success');
+        });
+    } catch (erro) {
+        mostrarErroModal('alerta-ficha-medica', erro.message);
+    }
 }
 
 /* ==================== AÇÕES: CADASTRAR ANIMAL ==================== */
 
-function enviarNovoAnimal(e) {
+async function enviarNovoAnimal(e) {
     e.preventDefault();
 
     const nome = $('novo-nome').value.trim();
-    const idade = $('novo-idade').value;
+    const especie = $('novo-especie').value;
+    const idadeStr = $('novo-idade').value;
+    const porte = $('novo-porte').value;
+    const sexo = $('novo-sexo').value;
+    const modalidade = $('novo-modalidade').value;
+    const fotoUrl = $('novo-foto').value.trim();
+    const descricao = $('novo-descricao').value.trim();
     const alerta = $('alerta-novo-animal');
 
-    if (!nome || idade === '') {
+    if (!nome || idadeStr === '') {
+        alerta.className = 'alert alert-danger';
         alerta.textContent = 'Preencha os campos obrigatórios (*) para cadastrar o animal.';
-        alerta.classList.remove('hidden');
         alerta.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         return;
     }
 
-    // TODO: Integrar com POST /api/animais
+    const vacinaNome = $('novo-vacina-nome').value.trim();
+    const vacinaLote = $('novo-vacina-lote').value.trim();
+    const vacinaData = $('novo-vacina-data').value;
+
+    if (vacinaNome && (!vacinaLote || !vacinaData)) {
+        alerta.className = 'alert alert-danger';
+        alerta.textContent = 'Para registrar uma vacina inicial, informe nome, lote e data de aplicação.';
+        alerta.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+    }
+
+    const vacinas = vacinaNome
+        ? [{ nomeVacina: vacinaNome, lote: vacinaLote, dataAplicacao: vacinaData }]
+        : [];
+
+    const payload = {
+        nome,
+        especie,
+        idadeMeses: Number(idadeStr),
+        porte,
+        sexo,
+        modalidade,
+        fotoUrl,
+        descricao,
+        ...(especie === 'Cachorro'
+            ? {
+                nivelEnergia: $('novo-nivel-energia').value,
+                sociavelComCaes: $('novo-sociavel-caes').checked
+            }
+            : {
+                testadoFivFelv: $('novo-testado-fiv').checked,
+                negativoFivFelv: $('novo-negativo-fiv').checked,
+                adaptadoApartamento: $('novo-adaptado-apto').checked
+            }),
+        fichaMedica: {
+            castrado: $('novo-castrado').checked,
+            vermifugado: $('novo-vermifugado').checked,
+            observacoesClinicas: $('novo-obs-clinicas').value.trim(),
+            vacinas
+        }
+    };
+
+    alerta.classList.add('hidden');
+    const btnSubmit = e.submitter || e.target.querySelector('[type="submit"]');
+
+    try {
+        await executarComLoading(btnSubmit, 'Cadastrando...', async () => {
+            const resposta = await api.cadastrarAnimal(payload);
+            $('form-novo-animal').reset();
+            alternarCamposEspecie();
+            await sincronizarEstadoAPI();
+            showToast(resposta.mensagem || 'Animal cadastrado com sucesso!', 'success');
+            showAdminTab('tab-animais-ong');
+        });
+    } catch (erro) {
+        alerta.className = 'alert alert-danger';
+        alerta.textContent = erro.message;
+        alerta.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
 }
 
 function alternarCamposEspecie() {
@@ -812,7 +1018,7 @@ function handleClickDelegado(event) {
             abrirModalAdocao(id);
             break;
         case 'aprovar':
-            aprovarSolicitacao(id);
+            aprovarSolicitacao(id, btn);
             break;
         case 'recusar':
             abrirModalRecusa(id);
@@ -821,7 +1027,7 @@ function handleClickDelegado(event) {
             abrirModalVisita(id);
             break;
         case 'realizar-visita':
-            realizarVisita(id);
+            realizarVisita(id, btn);
             break;
         case 'editar-ficha':
             abrirModalFicha(id);

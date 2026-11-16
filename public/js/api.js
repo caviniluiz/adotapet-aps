@@ -1,5 +1,5 @@
 /* ============================================================
-   API — Cliente HTTP (Fetch Wrapper) para os Itens 1 a 4
+   API — Cliente HTTP (Fetch Wrapper) completo da SPA AdotaPet
    ============================================================ */
 
 import { state } from './state.js';
@@ -48,6 +48,20 @@ export const api = {
         return request(`/api/animais/${id}`);
     },
 
+    cadastrarAnimal(dadosAnimal) {
+        return request('/api/animais', {
+            method: 'POST',
+            body: JSON.stringify(dadosAnimal)
+        });
+    },
+
+    atualizarFichaMedica(animalId, dadosFicha) {
+        return request(`/api/animais/${animalId}/ficha-medica`, {
+            method: 'PATCH',
+            body: JSON.stringify(dadosFicha)
+        });
+    },
+
     listarSolicitacoes(filtros = {}) {
         const params = new URLSearchParams();
         Object.entries(filtros).forEach(([chave, valor]) => {
@@ -66,7 +80,28 @@ export const api = {
         });
     },
 
+    avaliarSolicitacao(solicitacaoId, acao, justificativa = '') {
+        return request(`/api/solicitacoes/${solicitacaoId}/avaliar`, {
+            method: 'PATCH',
+            body: JSON.stringify({ acao, justificativa })
+        });
+    },
+
+    agendarVisita(solicitacaoId, dataHora, observacoes = '') {
+        return request(`/api/solicitacoes/${solicitacaoId}/visita`, {
+            method: 'POST',
+            body: JSON.stringify({ dataHora, observacoes })
+        });
+    },
+
     listarVisitas() {
         return request('/api/visitas');
+    },
+
+    confirmarVisita(visitaId, observacoes = '') {
+        return request(`/api/visitas/${visitaId}/confirmar`, {
+            method: 'PATCH',
+            body: JSON.stringify({ observacoes })
+        });
     }
 };
