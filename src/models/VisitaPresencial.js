@@ -1,3 +1,5 @@
+const { parseBooleano } = require('../config/constants');
+
 class VisitaPresencial {
     constructor({
         id,
@@ -10,7 +12,7 @@ class VisitaPresencial {
         this.solicitacaoId = Number(solicitacaoId);
         this.dataHora = dataHora || null;
         this.observacoes = observacoes ? String(observacoes).trim() : '';
-        this.realizada = Boolean(realizada);
+        this.realizada = parseBooleano(realizada, false);
     }
 
     agendar(novaData) {

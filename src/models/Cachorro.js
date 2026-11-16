@@ -1,4 +1,5 @@
 const Animal = require('./Animal');
+const { parseBooleano } = require('../config/constants');
 
 class Cachorro extends Animal {
     constructor({
@@ -8,7 +9,7 @@ class Cachorro extends Animal {
     }) {
         super({ ...dadosAnimal, especie: 'Cachorro' });
         this.nivelEnergia = String(nivelEnergia).toUpperCase().trim();
-        this.sociavelComCaes = Boolean(sociavelComCaes);
+        this.sociavelComCaes = parseBooleano(sociavelComCaes, true);
     }
 
     exigePasseioDiario() {

@@ -111,6 +111,49 @@ function escapar(texto) {
         .replaceAll('"', '&quot;');
 }
 
+function aplicarMascaraCPF(valor) {
+    const d = String(valor || '').replace(/\D/g, '').slice(0, 11);
+    if (d.length <= 3) return d;
+    if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+    if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+    return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9, 11)}`;
+}
+
+function aplicarMascaraTelefone(valor) {
+    const d = String(valor || '').replace(/\D/g, '').slice(0, 11);
+    if (d.length === 0) return '';
+    if (d.length <= 2) return `(${d}`;
+    if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+    if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7, 11)}`;
+}
+
+function validarCPF(cpf) {
+    const digitos = String(cpf || '').replace(/\D/g, '');
+    if (digitos.length !== 11 || /^(\d)\1{10}$/.test(digitos)) return false;
+
+    let soma = 0;
+    for (let i = 0; i < 9; i++) {
+        soma += Number(digitos[i]) * (10 - i);
+    }
+    let resto = (soma * 10) % 11;
+    if (resto === 10) resto = 0;
+    if (resto !== Number(digitos[9])) return false;
+
+    soma = 0;
+    for (let i = 0; i < 10; i++) {
+        soma += Number(digitos[i]) * (11 - i);
+    }
+    resto = (soma * 10) % 11;
+    if (resto === 10) resto = 0;
+    return resto === Number(digitos[10]);
+}
+
+function validarTelefone(telefone) {
+    const digitos = String(telefone || '').replace(/\D/g, '');
+    return (digitos.length === 10 || digitos.length === 11) && !/^(\d)\1+$/.test(digitos);
+}
+
 function buscarAnimal(id) {
     return (
         state.animais.find(a => Number(a.id) === Number(id)) ||
@@ -146,7 +189,7 @@ function showView(viewId) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function switchPerfil(tipo) {
+async function switchPerfil(tipo) {
     state.perfilAtivo = tipo;
     const navOng = $('nav-painel-ong');
 
@@ -159,10 +202,15 @@ function switchPerfil(tipo) {
         navOng.classList.add('hidden');
         if (!$('view-painel-ong').classList.contains('hidden')) {
             showView('view-catalogo');
-            return;
         }
     }
-    renderAll();
+
+    try {
+        await sincronizarEstadoAPI();
+    } catch (erro) {
+        showToast(erro.message || 'Erro ao atualizar dados para o perfil selecionado.', 'error');
+        renderAll();
+    }
 }
 
 /* ==================== MODAIS ==================== */
@@ -212,11 +260,21 @@ async function executarComLoading(botao, textoLoading, acaoAsync) {
     }
 }
 
+function listarSolicitacoesAtuais() {
+    if (state.perfilAtivo === 'GESTOR_ONG') {
+        return api.listarSolicitacoes();
+    }
+    if (state.adotanteAtivoId) {
+        return api.listarSolicitacoes({ adotanteId: state.adotanteAtivoId });
+    }
+    return Promise.resolve([]);
+}
+
 async function sincronizarEstadoAPI() {
     const [todosAnimais, animaisFiltrados, solicitacoes, visitas] = await Promise.all([
         api.listarAnimais({}),
         api.listarAnimais(state.filtros),
-        api.listarSolicitacoes(),
+        listarSolicitacoesAtuais(),
         api.listarVisitas()
     ]);
 
@@ -243,7 +301,7 @@ async function carregarDadosIniciais() {
     try {
         const [todosAnimais, solicitacoes, visitas, perfisRes] = await Promise.all([
             api.listarAnimais({}),
-            api.listarSolicitacoes(),
+            listarSolicitacoesAtuais(),
             api.listarVisitas(),
             api.listarPerfis()
         ]);
@@ -672,6 +730,16 @@ async function enviarSolicitacaoAdocao(e) {
         return;
     }
 
+    if (!validarCPF(cpf)) {
+        mostrarErroModal('alerta-erro-adocao', 'CPF inválido. Verifique os dígitos informados (formato 000.000.000-00).');
+        return;
+    }
+
+    if (!validarTelefone(telefone)) {
+        mostrarErroModal('alerta-erro-adocao', 'Telefone inválido. Informe DDD + número com 10 ou 11 dígitos.');
+        return;
+    }
+
     $('alerta-erro-adocao').classList.add('hidden');
 
     const btnSubmit = e.submitter || $('btn-enviar-solicitacao');
@@ -1082,6 +1150,14 @@ function init() {
 
     // Campos específicos por espécie no cadastro
     $('novo-especie').addEventListener('change', alternarCamposEspecie);
+
+    // Máscaras automáticas de CPF e Telefone
+    $('adocao-cpf').addEventListener('input', e => {
+        e.target.value = aplicarMascaraCPF(e.target.value);
+    });
+    $('adocao-telefone').addEventListener('input', e => {
+        e.target.value = aplicarMascaraTelefone(e.target.value);
+    });
 
     // Formulários
     $('form-adocao').addEventListener('submit', enviarSolicitacaoAdocao);

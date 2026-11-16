@@ -31,6 +31,12 @@ const visitasService = {
             throw erro;
         }
 
+        if (solicitacao.status !== 'PENDENTE') {
+            const erro = new Error('Só é possível agendar visitas para solicitações que estejam com status PENDENTE.');
+            erro.statusHttp = 409;
+            throw erro;
+        }
+
         const visita = new VisitaPresencial({ solicitacaoId: solicitacao.id, observacoes });
         if (!visita.agendar(dataHora)) {
             const erro = new Error('Data e horário inválidos.');

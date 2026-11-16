@@ -55,6 +55,13 @@ app.use('/api/solicitacoes', require('./src/routes/solicitacoesRoutes'));
 app.use('/api/adotantes', require('./src/routes/adotantesRoutes'));
 app.use('/api/visitas', require('./src/routes/visitasRoutes'));
 
+app.use('/api', (req, res) => {
+    res.status(404).json({
+        erro: true,
+        mensagem: `Rota da API não encontrada: ${req.method} ${req.originalUrl}`
+    });
+});
+
 app.use((req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });

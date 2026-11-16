@@ -8,10 +8,17 @@ const { exigirGestorONG } = require('../config/authMiddleware');
 /**
  * GET /api/solicitacoes
  * Lista solicitações (suporta filtro ?status=PENDENTE ou ?adotanteId=1)
+ * Restrito ao GESTOR_ONG para listagem global; adotantes comuns devem informar ?adotanteId=
  */
 router.get('/', (req, res) => {
     try {
         const { status, adotanteId, animalId } = req.query;
+        const perfil = String(req.headers['x-perfil'] || req.query.perfil || '').toUpperCase().trim();
+
+        if (perfil !== 'GESTOR_ONG' && !adotanteId) {
+            return res.json([]);
+        }
+
         let solicitacoes = repo.listarSolicitacoes();
 
         if (status && status !== 'TODOS') {

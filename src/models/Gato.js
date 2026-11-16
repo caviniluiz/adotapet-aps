@@ -1,4 +1,5 @@
 const Animal = require('./Animal');
+const { parseBooleano } = require('../config/constants');
 
 class Gato extends Animal {
     constructor({
@@ -8,9 +9,9 @@ class Gato extends Animal {
         ...dadosAnimal
     }) {
         super({ ...dadosAnimal, especie: 'Gato' });
-        this.testadoFivFelv = Boolean(testadoFivFelv);
-        this.negativoFivFelv = Boolean(negativoFivFelv);
-        this.adaptadoApartamento = Boolean(adaptadoApartamento);
+        this.testadoFivFelv = parseBooleano(testadoFivFelv, false);
+        this.negativoFivFelv = parseBooleano(negativoFivFelv, false);
+        this.adaptadoApartamento = parseBooleano(adaptadoApartamento, true);
     }
 
     /**

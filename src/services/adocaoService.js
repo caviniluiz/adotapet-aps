@@ -1,6 +1,12 @@
 const repo = require('../repositories/jsonRepository');
 const SolicitacaoAdocao = require('../models/SolicitacaoAdocao');
 const VisitaPresencial = require('../models/VisitaPresencial');
+const {
+    validarFormatoCPF,
+    formatarCPF,
+    validarFormatoTelefone,
+    formatarTelefone
+} = require('../config/constants');
 
 /**
  * Camada de Serviço responsável por orquestrar os Casos de Uso e Regras de Negócio (RN01 a RN04)
@@ -29,8 +35,21 @@ const adocaoService = {
 
         let adotante = null;
         if (dadosAdotante && dadosAdotante.nome && dadosAdotante.idade !== undefined) {
+            if (!dadosAdotante.cpf || !validarFormatoCPF(dadosAdotante.cpf)) {
+                const erro = new Error('CPF inválido. Verifique os dígitos informados.');
+                erro.statusHttp = 400;
+                throw erro;
+            }
+            if (!dadosAdotante.telefone || !validarFormatoTelefone(dadosAdotante.telefone)) {
+                const erro = new Error('Telefone inválido. Informe DDD + número (10 ou 11 dígitos).');
+                erro.statusHttp = 400;
+                throw erro;
+            }
+
             adotante = repo.salvarOuAtualizarAdotante({
                 ...dadosAdotante,
+                cpf: formatarCPF(dadosAdotante.cpf),
+                telefone: formatarTelefone(dadosAdotante.telefone),
                 id: adotanteId || dadosAdotante.id
             });
         } else if (adotanteId) {

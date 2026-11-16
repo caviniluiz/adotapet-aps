@@ -1,10 +1,11 @@
 const RegistroVacina = require('./RegistroVacina');
+const { parseBooleano } = require('../config/constants');
 
 class FichaMedica {
     constructor({ id, castrado = false, vermifugado = false, observacoesClinicas = '', vacinas = [] } = {}) {
         this.id = id ? Number(id) : Date.now();
-        this.castrado = Boolean(castrado);
-        this.vermifugado = Boolean(vermifugado);
+        this.castrado = parseBooleano(castrado, false);
+        this.vermifugado = parseBooleano(vermifugado, false);
         this.observacoesClinicas = observacoesClinicas ? String(observacoesClinicas).trim() : '';
         this.vacinas = Array.isArray(vacinas)
             ? vacinas.map(v => (v instanceof RegistroVacina ? v : new RegistroVacina(v)))

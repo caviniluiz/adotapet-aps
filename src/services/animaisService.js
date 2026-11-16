@@ -1,6 +1,7 @@
 const repo = require('../repositories/jsonRepository');
 const Cachorro = require('../models/Cachorro');
 const Gato = require('../models/Gato');
+const { parseBooleano } = require('../config/constants');
 
 const animaisService = {
     listarAnimais({ especie, porte, sexo, modalidade, status, busca } = {}) {
@@ -97,7 +98,7 @@ const animaisService = {
         }
 
         if (castrado !== undefined) {
-            if (Boolean(castrado)) {
+            if (parseBooleano(castrado)) {
                 animal.fichaMedica.registrarCastracao();
             } else {
                 animal.fichaMedica.castrado = false;
@@ -105,7 +106,7 @@ const animaisService = {
         }
 
         if (vermifugado !== undefined) {
-            animal.fichaMedica.vermifugado = Boolean(vermifugado);
+            animal.fichaMedica.vermifugado = parseBooleano(vermifugado);
         }
 
         if (observacoesClinicas !== undefined) {
