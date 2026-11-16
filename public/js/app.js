@@ -1,10 +1,11 @@
 /* ============================================================
    APP — Lógica de interface da SPA AdotaPet
-   (Estrutura de UI, navegação, filtros, modais e renderizadores
-    preparados para futura integração com a API REST)
+   (Integração com API REST: carga inicial, catálogo/filtros e
+    envio de solicitação de adoção)
    ============================================================ */
 
-import { state } from './state.js';
+import { state, setAdotanteAtivoId } from './state.js';
+import { api } from './api.js';
 
 /* ==================== MAPAS / CONSTANTES ==================== */
 
@@ -111,7 +112,10 @@ function escapar(texto) {
 }
 
 function buscarAnimal(id) {
-    return state.animais.find(a => Number(a.id) === Number(id));
+    return (
+        state.animais.find(a => Number(a.id) === Number(id)) ||
+        state.todosAnimais.find(a => Number(a.id) === Number(id))
+    );
 }
 
 function showToast(mensagem, tipo = 'success') {
@@ -182,24 +186,44 @@ function mostrarErroModal(idAlerta, msg) {
     alerta.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-/* ==================== RENDER: CATÁLOGO ==================== */
+/* ==================== CARGA E FILTROS VIA API ==================== */
 
-function aplicarFiltrosAnimais() {
-    const f = state.filtros;
-    return state.animais.filter(a => {
-        if (f.busca && !a.nome.toLowerCase().includes(f.busca.toLowerCase())) return false;
-        if (f.especie !== 'TODOS' && a.especie !== f.especie) return false;
-        if (f.porte !== 'TODOS' && a.porte !== f.porte) return false;
-        if (f.sexo !== 'TODOS' && a.sexo !== f.sexo) return false;
-        if (f.modalidade !== 'TODOS' && a.modalidade !== f.modalidade) return false;
-        if (f.status !== 'TODOS' && a.status !== f.status) return false;
-        return true;
-    });
+async function carregarDadosIniciais() {
+    try {
+        const [todosAnimais, solicitacoes, visitas, perfisRes] = await Promise.all([
+            api.listarAnimais({}),
+            api.listarSolicitacoes(),
+            api.listarVisitas(),
+            api.listarPerfis()
+        ]);
+
+        state.todosAnimais = todosAnimais;
+        state.animais = todosAnimais;
+        state.solicitacoes = solicitacoes;
+        state.visitas = visitas;
+        state.perfis = perfisRes.perfis || [];
+
+        renderAll();
+    } catch (erro) {
+        showToast(erro.message || 'Erro ao carregar dados iniciais da API.', 'error');
+    }
 }
+
+async function atualizarCatalogoFiltrado() {
+    try {
+        const animaisFiltrados = await api.listarAnimais(state.filtros);
+        state.animais = animaisFiltrados;
+        renderCatalogo();
+    } catch (erro) {
+        showToast(erro.message || 'Erro ao filtrar catálogo na API.', 'error');
+    }
+}
+
+/* ==================== RENDER: CATÁLOGO ==================== */
 
 function renderCatalogo() {
     const grid = $('catalogo-grid');
-    const filtrados = aplicarFiltrosAnimais();
+    const filtrados = state.animais;
 
     if (filtrados.length === 0) {
         grid.innerHTML = `
@@ -212,8 +236,9 @@ function renderCatalogo() {
         grid.innerHTML = filtrados.map(cardHtml).join('');
     }
 
-    $('stat-disponiveis').textContent = state.animais.filter(a => a.status === 'DISPONIVEL').length;
-    $('stat-analise').textContent = state.animais.filter(a => a.status === 'EM_ANALISE').length;
+    const baseContagem = state.todosAnimais.length > 0 ? state.todosAnimais : state.animais;
+    $('stat-disponiveis').textContent = baseContagem.filter(a => a.status === 'DISPONIVEL').length;
+    $('stat-analise').textContent = baseContagem.filter(a => a.status === 'EM_ANALISE').length;
 }
 
 function cardHtml(animal) {
@@ -561,22 +586,61 @@ function abrirModalAdocao(animalId) {
     openModal('modal-adocao');
 }
 
-function enviarSolicitacaoAdocao(e) {
+async function enviarSolicitacaoAdocao(e) {
     e.preventDefault();
 
+    const animalId = Number($('adocao-animal-id').value);
     const nome = $('adocao-nome').value.trim();
     const cpf = $('adocao-cpf').value.trim();
     const idade = parseInt($('adocao-idade').value, 10);
     const telefone = $('adocao-telefone').value.trim();
-    const moradia = $('adocao-moradia').value;
+    const tipoMoradia = $('adocao-moradia').value;
     const telas = $('adocao-telas').value;
+    const modalidade = $('adocao-modalidade').value;
 
-    if (!nome || !cpf || !idade || !telefone || !moradia || telas === '') {
+    if (!animalId || !nome || !cpf || Number.isNaN(idade) || !telefone || !tipoMoradia || telas === '') {
         mostrarErroModal('alerta-erro-adocao', 'Preencha todos os campos obrigatórios (*) para registrar sua solicitação.');
         return;
     }
 
-    // TODO: Integrar com POST /api/solicitacoes
+    $('alerta-erro-adocao').classList.add('hidden');
+
+    try {
+        const resposta = await api.enviarSolicitacao({
+            animalId,
+            modalidade,
+            adotante: {
+                nome,
+                cpf,
+                idade,
+                telefone,
+                tipoMoradia,
+                possuiTelasProtecao: telas === 'true'
+            }
+        });
+
+        if (resposta.solicitacao?.adotanteId) {
+            setAdotanteAtivoId(resposta.solicitacao.adotanteId);
+        }
+
+        const [todosAnimais, animaisFiltrados, solicitacoes] = await Promise.all([
+            api.listarAnimais({}),
+            api.listarAnimais(state.filtros),
+            api.listarSolicitacoes()
+        ]);
+
+        state.todosAnimais = todosAnimais;
+        state.animais = animaisFiltrados;
+        state.solicitacoes = solicitacoes;
+
+        closeModal('modal-adocao');
+        $('form-adocao').reset();
+        showToast(resposta.mensagem || 'Solicitação registrada com sucesso!', 'success');
+        renderAll();
+    } catch (erro) {
+        const prefixo = erro.regraViolada ? `[${erro.regraViolada}] ` : '';
+        mostrarErroModal('alerta-erro-adocao', `${prefixo}${erro.message}`);
+    }
 }
 
 function aprovarSolicitacao(_solicitacaoId) {
@@ -778,22 +842,27 @@ function init() {
     // Troca de perfil (RNF03)
     $('select-perfil-ativo').addEventListener('change', (e) => switchPerfil(e.target.value));
 
-    // Filtros do catálogo
+    // Filtros do catálogo (RNF01 — assíncrono via API)
+    let buscaTimer = null;
     $('form-filtros').addEventListener('submit', e => e.preventDefault());
     $('filtro-busca').addEventListener('input', e => {
         state.filtros.busca = e.target.value.trim();
-        renderCatalogo();
+        clearTimeout(buscaTimer);
+        buscaTimer = setTimeout(() => {
+            atualizarCatalogoFiltrado();
+        }, 250);
     });
     ['filtro-especie', 'filtro-porte', 'filtro-sexo', 'filtro-modalidade', 'filtro-status'].forEach(id => {
         $(id).addEventListener('change', e => {
             state.filtros[id.replace('filtro-', '')] = e.target.value;
-            renderCatalogo();
+            atualizarCatalogoFiltrado();
         });
     });
     $('btn-limpar-filtros').addEventListener('click', () => {
+        clearTimeout(buscaTimer);
         state.filtros = { busca: '', especie: 'TODOS', porte: 'TODOS', sexo: 'TODOS', modalidade: 'TODOS', status: 'TODOS' };
         $('form-filtros').reset();
-        renderCatalogo();
+        atualizarCatalogoFiltrado();
     });
 
     // Abas do painel admin
@@ -845,7 +914,7 @@ function init() {
         document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(m => closeModal(m.id));
     });
 
-    renderAll();
+    carregarDadosIniciais();
 }
 
 init();
