@@ -4,12 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AdotaPet — Sistema de Gestão de Adoção e Lar Temporário</title>
+    <title>AdotaPet — Adoção Responsável e Lar Temporário</title>
 
-    <!-- Tipografia alegre: Baloo 2 (títulos) + Nunito (texto) -->
+    <!-- Tipografia editorial e minimalista: Fraunces (títulos) + Plus Jakarta Sans (interface) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="css/global.css">
 </head>
@@ -18,20 +18,28 @@
     <!-- Cabeçalho Principal e Navegação da SPA -->
     <header class="topbar">
         <div class="container topbar-inner">
-            <div class="brand" id="btn-home">
-                <span class="brand-icon" aria-hidden="true">🐾</span>
+            <div class="brand" id="btn-home" role="button" tabindex="0" aria-label="Ir para o início">
+                <span class="brand-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                        <circle cx="7.5" cy="7.5" r="2.1"/>
+                        <circle cx="12" cy="5.5" r="2.1"/>
+                        <circle cx="16.5" cy="7.5" r="2.1"/>
+                        <circle cx="5.2" cy="12" r="1.9"/>
+                        <path d="M12 10.2c-3.1 0-5.5 2.4-5.5 5.2 0 1.9 1.3 3.1 3 3.1 1 0 1.7-.4 2.5-.4s1.5.4 2.5.4c1.7 0 3-1.2 3-3.1 0-2.8-2.4-5.2-5.5-5.2z"/>
+                    </svg>
+                </span>
                 <div>
                     <h1 class="brand-title">AdotaPet</h1>
-                    <span class="brand-subtitle">Sistema de Adoção &amp; Lar Temporário</span>
+                    <span class="brand-subtitle">Adoção &amp; Lar Temporário</span>
                 </div>
             </div>
 
             <nav class="main-nav" aria-label="Navegação principal">
                 <button type="button" class="nav-link active" data-view="view-catalogo">
-                    Catálogo de Pets
+                    Catálogo
                 </button>
                 <button type="button" class="nav-link" data-view="view-minhas-solicitacoes">
-                    Solicitações <span id="badge-total-solicitacoes" class="nav-counter">0</span>
+                    Solicitações <span id="badge-total-solicitacoes" class="nav-counter hidden">0</span>
                 </button>
                 <button type="button" class="nav-link nav-ong hidden" id="nav-painel-ong" data-view="view-painel-ong">
                     Painel da ONG
@@ -40,7 +48,7 @@
 
             <!-- Seletor de Perfil de Acesso (RNF03) -->
             <div class="profile-switcher">
-                <label for="select-perfil-ativo">Perfil:</label>
+                <label for="select-perfil-ativo">Perfil</label>
                 <select id="select-perfil-ativo" aria-label="Selecionar perfil de acesso">
                     <option value="ADOTANTE">Adotante</option>
                     <option value="GESTOR_ONG">Gestor da ONG</option>
@@ -57,30 +65,70 @@
 
         <!-- SEÇÃO 1: CATÁLOGO E FILTROS (UC01 / RF04 / RNF01) -->
         <section id="view-catalogo" class="spa-view">
+
+            <!-- Hero Editorial 2 Colunas (Estilo Paw & Purpose) -->
             <div class="hero-banner">
-                <span class="hero-paw hero-paw-1" aria-hidden="true">🐾</span>
-                <span class="hero-paw hero-paw-2" aria-hidden="true">🐾</span>
-                <div class="hero-text">
-                    <h2>Catálogo de Adoção Responsável e Lar Temporário</h2>
-                    <p>Consulte os cães e gatos resgatados, verifique a ficha médica completa e envie sua solicitação de adoção ou acolhimento temporário.</p>
+                <div class="hero-content">
+                    <span class="hero-eyebrow">Adoção Responsável</span>
+                    <h2>Todo Pet Merece um <span>Lar</span></h2>
+                    <p>Conectamos corações dispostos a amar com cães e gatos resgatados. Consulte o histórico clínico completo e encontre seu novo companheiro.</p>
+
+                    <div class="hero-pillars">
+                        <div class="pillar-item">
+                            <span class="pillar-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 10.5 12 3l9 7.5"/>
+                                    <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/>
+                                </svg>
+                            </span>
+                            <div>
+                                <strong><span id="stat-disponiveis">0</span> Disponíveis</strong>
+                                <span>Prontos para adoção</span>
+                            </div>
+                        </div>
+
+                        <div class="pillar-item">
+                            <span class="pillar-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                                </svg>
+                            </span>
+                            <div>
+                                <strong><span id="stat-analise">0</span> Em Análise</strong>
+                                <span>Processos ativos</span>
+                            </div>
+                        </div>
+
+                        <div class="pillar-item">
+                            <span class="pillar-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>
+                                    <path d="m9 12 2 2 4-4"/>
+                                </svg>
+                            </span>
+                            <div>
+                                <strong>Ficha Clínica</strong>
+                                <span>Vacinas e castração</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="hero-stats">
-                    <div class="stat-pill">
-                        <strong id="stat-disponiveis">0</strong>
-                        <span>Disponíveis</span>
-                    </div>
-                    <div class="stat-pill">
-                        <strong id="stat-analise">0</strong>
-                        <span>Em Análise</span>
-                    </div>
+
+                <div class="hero-visual">
+                    <div class="hero-blob" aria-hidden="true"></div>
+                    <img
+                        src="https://images.unsplash.com/photo-1450778869180-41d0601e046e?auto=format&fit=crop&w=800&q=85"
+                        alt="Cão e gato juntos esperando um lar"
+                        class="hero-image"
+                    >
                 </div>
             </div>
 
-            <!-- Barra de Filtragem Assíncrona -->
+            <!-- Barra de Filtragem Assíncrona Flutuante -->
             <form id="form-filtros" class="filter-bar" aria-label="Filtros do catálogo de animais">
-                <div class="filter-group">
+                <div class="filter-group filter-search">
                     <label for="filtro-busca">Buscar por nome</label>
-                    <input type="text" id="filtro-busca" placeholder="Digite o nome do animal...">
+                    <input type="text" id="filtro-busca" placeholder="Ex.: Thor, Luna, Mingau...">
                 </div>
 
                 <div class="filter-group">
@@ -132,9 +180,78 @@
                 </div>
 
                 <div class="filter-actions">
-                    <button type="button" id="btn-limpar-filtros" class="btn btn-outline">Limpar Filtros</button>
+                    <button type="button" id="btn-limpar-filtros" class="btn btn-outline btn-sm">Limpar</button>
                 </div>
             </form>
+
+            <!-- Faixa de Categorias Rápidas (Atalhos de Filtro) -->
+            <section class="categories-strip" aria-label="Categorias rápidas">
+                <h3 class="strip-title">Categorias de Adoção</h3>
+                <div class="categories-grid">
+                    <button type="button" class="category-card cat-all active" data-quick-filter="TODOS">
+                        <span class="category-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="9"/>
+                                <path d="M8.5 10.5h.01M15.5 10.5h.01M9.5 15a3.5 3.5 0 0 0 5 0"/>
+                            </svg>
+                        </span>
+                        <strong>Todos</strong>
+                        <span>Acervo completo</span>
+                    </button>
+
+                    <button type="button" class="category-card cat-dogs" data-quick-filter="Cachorro">
+                        <span class="category-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M10 5.172C10 3.782 8.423 2.679 6.5 3c-2.823.47-4.113 6.006-4 7 .08.703 1.725 1.722 3.656 1 1.261-.472 1.96-1.45 2.344-2.5"/>
+                                <path d="M14.267 5.172c0-1.39 1.577-2.493 3.5-2.172 2.823.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.855-1.45-2.239-2.5"/>
+                                <path d="M8 14v.5M16 14v.5M11.25 16.25h1.5L12 17l-.75-.75Z"/>
+                                <path d="M4.42 11.247A13.152 13.152 0 0 0 4 14.556C4 18.728 7.582 21 12 21s8-2.272 8-6.444c0-1.061-.162-2.2-.493-3.309"/>
+                            </svg>
+                        </span>
+                        <strong>Cães</strong>
+                        <span>Companheiros leais</span>
+                    </button>
+
+                    <button type="button" class="category-card cat-cats" data-quick-filter="Gato">
+                        <span class="category-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.26 1.4.58-.42 7-.42 7 .57 1.07 1 2.24 1 3.44C21 17.9 16.97 21 12 21s-9-3.1-9-7.56c0-1.25.5-2.4 1-3.44 0 0-1.89-6.42-.5-7 1.39-.58 4.72.23 6.5 2.23A9.04 9.04 0 0 1 12 5Z"/>
+                                <path d="M8 14v.5M16 14v.5M11.25 16.25h1.5L12 17l-.75-.75Z"/>
+                            </svg>
+                        </span>
+                        <strong>Gatos</strong>
+                        <span>Lar com telas (RN02)</span>
+                    </button>
+
+                    <button type="button" class="category-card cat-foster" data-quick-filter="LAR_TEMPORARIO">
+                        <span class="category-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                            </svg>
+                        </span>
+                        <strong>Lar Temporário</strong>
+                        <span>Acolhimento</span>
+                    </button>
+
+                    <button type="button" class="category-card cat-small" data-quick-filter="PEQUENO">
+                        <span class="category-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>
+                            </svg>
+                        </span>
+                        <strong>Porte Pequeno</strong>
+                        <span>Ideal p/ apartamentos</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Cabeçalho da Seção do Catálogo -->
+            <div class="catalog-section-header">
+                <div>
+                    <h3>Conheça Nossos Amigos</h3>
+                    <p>Selecione um pet para consultar a ficha clínica ou iniciar sua solicitação.</p>
+                </div>
+            </div>
 
             <!-- Container do Grid de Cards (Populado dinamicamente via JS) -->
             <div id="catalogo-grid" class="pets-grid" aria-live="polite"></div>
@@ -143,8 +260,8 @@
         <!-- SEÇÃO 2: ACOMPANHAMENTO DE SOLICITAÇÕES -->
         <section id="view-minhas-solicitacoes" class="spa-view hidden">
             <header class="section-header">
-                <h2>Acompanhamento de Solicitações</h2>
-                <p>Histórico de solicitações registradas, status da avaliação e agendamentos de visitas presenciais.</p>
+                <h2>Minhas Solicitações</h2>
+                <p>Acompanhe o andamento das suas solicitações, pareceres da ONG e visitas presenciais agendadas.</p>
             </header>
 
             <div id="lista-minhas-solicitacoes" class="requests-list"></div>
@@ -153,7 +270,7 @@
         <!-- SEÇÃO 3: PAINEL ADMINISTRATIVO DA ONG (UC04, UC06, UC07 / RNF03) -->
         <section id="view-painel-ong" class="spa-view hidden">
             <header class="section-header admin-header">
-                <span class="badge badge-admin">Acesso Restrito — Gestor da ONG (RNF03)</span>
+                <span class="badge badge-admin">Área Restrita — Gestor da ONG (RNF03)</span>
                 <h2>Painel de Gestão da ONG</h2>
                 <p>Gerencie solicitações de adoção, fichas médicas, cadastros de animais resgatados e visitas presenciais.</p>
             </header>
@@ -362,6 +479,21 @@
         </section>
 
     </main>
+
+    <!-- Rodapé Minimalista -->
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <div class="footer-brand">
+                <strong>AdotaPet</strong>
+                <p>Gestão de adoção responsável, lar temporário e histórico clínico de cães e gatos resgatados.</p>
+            </div>
+            <div class="footer-meta">
+                <span>Análise e Projeto de Sistemas · 2026</span>
+                <span class="footer-dot">·</span>
+                <span>Adoção com responsabilidade</span>
+            </div>
+        </div>
+    </footer>
 
     <!-- MODAL 1: DETALHES DO ANIMAL E FICHA MÉDICA -->
     <div id="modal-detalhes" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-detalhes-titulo">
