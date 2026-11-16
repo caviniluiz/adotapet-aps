@@ -15,10 +15,13 @@ describe('AdotaPet Backend — POO, Rotas REST e Regras de Negócio (RN01 a RN04
     const backup = {};
 
     before(async () => {
-        // Faz backup dos arquivos JSON antes dos testes
+        // Faz backup dos arquivos JSON antes dos testes e garante filas limpas
         Object.entries(ARQUIVOS_DADOS).forEach(([chave, caminho]) => {
             backup[chave] = fs.existsSync(caminho) ? fs.readFileSync(caminho, 'utf-8') : '[]';
         });
+
+        fs.writeFileSync(ARQUIVOS_DADOS.solicitacoes, '[]\n', 'utf-8');
+        fs.writeFileSync(ARQUIVOS_DADOS.visitas, '[]\n', 'utf-8');
 
         await new Promise(resolve => {
             server = app.listen(0, () => {
@@ -189,6 +192,253 @@ describe('AdotaPet Backend — POO, Rotas REST e Regras de Negócio (RN01 a RN04
         assert.equal(resAprovacao.status, 200);
         assert.equal(dadosAprovacao.solicitacao.status, 'APROVADA');
         assert.equal(dadosAprovacao.solicitacao.animal.status, 'ADOTADO');
+    });
+
+    it('8. LAR_TEMPORARIO: Aprovação de lar temporário deve alterar status do animal para EM_LAR_TEMPORARIO', async () => {
+        const resCriacao = await fetch(`${baseUrl}/api/solicitacoes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                adotanteId: 1,
+                animalId: 5, // Bidu (Cachorro)
+                modalidade: 'LAR_TEMPORARIO'
+            })
+        });
+        const dadosCriacao = await resCriacao.json();
+        assert.equal(resCriacao.status, 201);
+
+        const resAprov = await fetch(`${baseUrl}/api/solicitacoes/${dadosCriacao.solicitacao.id}/avaliar`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-perfil': 'GESTOR_ONG'
+            },
+            body: JSON.stringify({ acao: 'APROVAR' })
+        });
+        const dadosAprov = await resAprov.json();
+
+        assert.equal(resAprov.status, 200);
+        assert.equal(dadosAprov.solicitacao.status, 'APROVADA');
+        assert.equal(dadosAprov.solicitacao.animal.status, 'EM_LAR_TEMPORARIO');
+    });
+
+    it('9. RECUSAR (UC04 FA01): Deve exigir justificativa e devolver animal para DISPONIVEL após recusa', async () => {
+        const resCriacao = await fetch(`${baseUrl}/api/solicitacoes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                adotanteId: 1,
+                animalId: 1, // Thor
+                modalidade: 'ADOCAO_DEFINITIVA'
+            })
+        });
+        const dadosCriacao = await resCriacao.json();
+        assert.equal(resCriacao.status, 201);
+        const solId = dadosCriacao.solicitacao.id;
+
+        // Tentativa sem justificativa deve falhar com HTTP 400
+        const resSemJust = await fetch(`${baseUrl}/api/solicitacoes/${solId}/avaliar`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-perfil': 'GESTOR_ONG'
+            },
+            body: JSON.stringify({ acao: 'RECUSAR', justificativa: '' })
+        });
+        assert.equal(resSemJust.status, 400);
+
+        // Recusa válida com justificativa
+        const resRecusa = await fetch(`${baseUrl}/api/solicitacoes/${solId}/avaliar`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-perfil': 'GESTOR_ONG'
+            },
+            body: JSON.stringify({ acao: 'RECUSAR', justificativa: 'Quintal sem portão adequado.' })
+        });
+        const dadosRecusa = await resRecusa.json();
+
+        assert.equal(resRecusa.status, 200);
+        assert.equal(dadosRecusa.solicitacao.status, 'RECUSADA');
+        assert.equal(dadosRecusa.solicitacao.justificativaAvaliacao, 'Quintal sem portão adequado.');
+        assert.equal(dadosRecusa.solicitacao.animal.status, 'DISPONIVEL');
+    });
+
+    it('10. Visitas Presenciais (UC06 / RF08): Deve agendar em solicitação PENDENTE, bloquear em solicitação encerrada e confirmar realização', async () => {
+        // Cria nova solicitação PENDENTE para Thor (que voltou a DISPONIVEL)
+        const resSol = await fetch(`${baseUrl}/api/solicitacoes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                adotanteId: 1,
+                animalId: 1,
+                modalidade: 'ADOCAO_DEFINITIVA'
+            })
+        });
+        const dadosSol = await resSol.json();
+        assert.equal(resSol.status, 201);
+        const solPendenteId = dadosSol.solicitacao.id;
+
+        // Agendamento pela rota aninhada
+        const resVisita = await fetch(`${baseUrl}/api/solicitacoes/${solPendenteId}/visita`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-perfil': 'GESTOR_ONG'
+            },
+            body: JSON.stringify({ dataHora: '2026-11-25T15:00', observacoes: 'Trazer documento' })
+        });
+        const dadosVisita = await resVisita.json();
+        assert.equal(resVisita.status, 201);
+        assert.equal(dadosVisita.visita.realizada, false);
+
+        // Confirmação da visita
+        const resConfirmar = await fetch(`${baseUrl}/api/visitas/${dadosVisita.visita.id}/confirmar`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-perfil': 'GESTOR_ONG'
+            },
+            body: JSON.stringify({})
+        });
+        const dadosConfirmar = await resConfirmar.json();
+        assert.equal(resConfirmar.status, 200);
+        assert.equal(dadosConfirmar.visita.realizada, true);
+
+        // POST /api/visitas deve bloquear solicitação #1 que já foi APROVADA (HTTP 409)
+        const resBloqEncerrada = await fetch(`${baseUrl}/api/visitas`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-perfil': 'GESTOR_ONG'
+            },
+            body: JSON.stringify({ solicitacaoId: 1, dataHora: '2026-11-26T10:00' })
+        });
+        assert.equal(resBloqEncerrada.status, 409);
+    });
+
+    it('11. UC07 e P1 (Conversão Booleana Segura): Deve cadastrar novo animal e impedir burla da RN02 via string "false"', async () => {
+        const resCad = await fetch(`${baseUrl}/api/animais`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-perfil': 'GESTOR_ONG'
+            },
+            body: JSON.stringify({
+                nome: 'Mel',
+                especie: 'Gato',
+                idadeMeses: 7,
+                porte: 'PEQUENO',
+                sexo: 'F',
+                modalidade: 'ADOCAO_DEFINITIVA',
+                testadoFivFelv: 'true',
+                negativoFivFelv: 'true',
+                adaptadoApartamento: 'true',
+                fichaMedica: {
+                    castrado: 'true',
+                    vermifugado: 'true',
+                    observacoesClinicas: 'Saudável',
+                    vacinas: [{ nomeVacina: 'V4', lote: 'L-01', dataAplicacao: '2026-11-01' }]
+                }
+            })
+        });
+        const dadosCad = await resCad.json();
+        assert.equal(resCad.status, 201);
+        assert.equal(dadosCad.animal.nome, 'Mel');
+        assert.equal(dadosCad.animal.fichaMedica.castrado, true);
+
+        // Tentativa enviando possuiTelasProtecao como string "false" deve continuar bloqueada na RN02
+        const resStringFalse = await fetch(`${baseUrl}/api/solicitacoes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                animalId: dadosCad.animal.id,
+                modalidade: 'ADOCAO_DEFINITIVA',
+                adotante: {
+                    nome: 'Teste String False',
+                    cpf: '529.982.247-25',
+                    idade: 26,
+                    telefone: '(11) 99999-1111',
+                    tipoMoradia: 'APARTAMENTO',
+                    possuiTelasProtecao: 'false'
+                }
+            })
+        });
+        const dadosStringFalse = await resStringFalse.json();
+        assert.equal(resStringFalse.status, 422);
+        assert.equal(dadosStringFalse.regraViolada, 'RN02');
+    });
+
+    it('12. Perfis, Adotantes (Validação/Formatação de CPF e Telefone), Privacidade e 404 JSON em /api/*', async () => {
+        // Perfis
+        const resPerfis = await fetch(`${baseUrl}/api/auth/perfis`);
+        const dadosPerfis = await resPerfis.json();
+        assert.equal(resPerfis.status, 200);
+        assert.equal(dadosPerfis.perfis.length, 2);
+
+        // Cadastro de adotante com CPF curto ou dígitos repetidos (ex.: 44444444444444) deve falhar com 400
+        const resCpfInvalido = await fetch(`${baseUrl}/api/adotantes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome: 'CPF Ruim', cpf: '123', idade: 25, telefone: '11999999999' })
+        });
+        assert.equal(resCpfInvalido.status, 400);
+
+        const resCpfRepetido = await fetch(`${baseUrl}/api/adotantes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome: 'CPF Repetido', cpf: '44444444444444', idade: 25, telefone: '16988472042' })
+        });
+        assert.equal(resCpfRepetido.status, 400);
+
+        // Cadastro enviando CPF e telefone apenas com números deve formatar automaticamente
+        const resAdotante = await fetch(`${baseUrl}/api/adotantes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nome: 'Fernanda Costa',
+                cpf: '52998224725',
+                idade: 31,
+                telefone: '16988472042',
+                tipoMoradia: 'CASA',
+                possuiTelasProtecao: 'false'
+            })
+        });
+        const dadosAdotante = await resAdotante.json();
+        assert.equal(resAdotante.status, 201);
+        assert.equal(dadosAdotante.adotante.cpf, '529.982.247-25');
+        assert.equal(dadosAdotante.adotante.telefone, '(16) 98847-2042');
+        assert.equal(dadosAdotante.adotante.possuiTelasProtecao, false);
+
+        // Atualização de perfil residencial com CPF válido
+        const resPatchPerfil = await fetch(`${baseUrl}/api/adotantes/${dadosAdotante.adotante.id}/perfil-residencial`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tipoMoradia: 'APARTAMENTO', possuiTelasProtecao: true })
+        });
+        const dadosPatchPerfil = await resPatchPerfil.json();
+        assert.equal(resPatchPerfil.status, 200);
+        assert.equal(dadosPatchPerfil.adotante.possuiTelasProtecao, true);
+
+        // Privacidade em GET /api/solicitacoes
+        const resSolPublico = await fetch(`${baseUrl}/api/solicitacoes`);
+        assert.deepEqual(await resSolPublico.json(), []);
+
+        const resSolAdotante = await fetch(`${baseUrl}/api/solicitacoes?adotanteId=1`);
+        const listaAdotante1 = await resSolAdotante.json();
+        assert.ok(listaAdotante1.length > 0);
+        assert.ok(listaAdotante1.every(s => s.adotanteId === 1));
+
+        const resSolGestor = await fetch(`${baseUrl}/api/solicitacoes`, {
+            headers: { 'x-perfil': 'GESTOR_ONG' }
+        });
+        assert.ok((await resSolGestor.json()).length > 0);
+
+        // 404 JSON para rota /api/* inexistente
+        const res404 = await fetch(`${baseUrl}/api/rota-que-nao-existe`);
+        const dados404 = await res404.json();
+        assert.equal(res404.status, 404);
+        assert.equal(dados404.erro, true);
     });
 });
 
