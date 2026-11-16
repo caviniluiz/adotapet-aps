@@ -325,10 +325,34 @@ async function carregarDadosIniciais() {
     }
 }
 
+function sincronizarCategoriasRapidas() {
+    const f = state.filtros;
+    let chaveAtiva = null;
+
+    if (!f.busca && f.sexo === 'TODOS' && f.status === 'TODOS') {
+        if (f.especie === 'TODOS' && f.porte === 'TODOS' && f.modalidade === 'TODOS') {
+            chaveAtiva = 'TODOS';
+        } else if (f.especie === 'Cachorro' && f.porte === 'TODOS' && f.modalidade === 'TODOS') {
+            chaveAtiva = 'Cachorro';
+        } else if (f.especie === 'Gato' && f.porte === 'TODOS' && f.modalidade === 'TODOS') {
+            chaveAtiva = 'Gato';
+        } else if (f.modalidade === 'LAR_TEMPORARIO' && f.especie === 'TODOS' && f.porte === 'TODOS') {
+            chaveAtiva = 'LAR_TEMPORARIO';
+        } else if (f.porte === 'PEQUENO' && f.especie === 'TODOS' && f.modalidade === 'TODOS') {
+            chaveAtiva = 'PEQUENO';
+        }
+    }
+
+    document.querySelectorAll('.category-card[data-quick-filter]').forEach(card => {
+        card.classList.toggle('active', card.dataset.quickFilter === chaveAtiva);
+    });
+}
+
 async function atualizarCatalogoFiltrado() {
     try {
         const animaisFiltrados = await api.listarAnimais(state.filtros);
         state.animais = animaisFiltrados;
+        sincronizarCategoriasRapidas();
         renderCatalogo();
     } catch (erro) {
         showToast(erro.message || 'Erro ao filtrar catálogo na API.', 'error');
@@ -344,9 +368,8 @@ function renderCatalogo() {
     if (filtrados.length === 0) {
         grid.innerHTML = `
             <div class="empty-state">
-                <span class="empty-emoji">🐾</span>
-                Nenhum pet encontrado com os filtros atuais.<br>
-                Tente ajustar ou limpar os filtros!
+                Nenhum animal encontrado com os filtros atuais.<br>
+                Tente ajustar ou limpar os filtros selecionados.
             </div>`;
     } else {
         grid.innerHTML = filtrados.map(cardHtml).join('');
@@ -360,8 +383,7 @@ function renderCatalogo() {
 function cardHtml(animal) {
     const foto = animal.fotoUrl || FOTOS_DEFAULT[animal.especie];
     const chipEspecie = animal.especie === 'Gato' ? 'species-gato' : 'species-cachorro';
-    const emojiEspecie = animal.especie === 'Gato' ? '🐈' : '🐕';
-    const genero = animal.sexo === 'M' ? '♂ Macho' : '♀ Fêmea';
+    const genero = animal.sexo === 'M' ? 'Macho' : 'Fêmea';
     const disponivel = animal.status === 'DISPONIVEL';
 
     return `
@@ -376,18 +398,18 @@ function cardHtml(animal) {
             <div class="pet-card-body">
                 <div class="pet-card-title-row">
                     <h3 class="pet-card-title">${escapar(animal.nome)}</h3>
-                    <span class="species-chip ${chipEspecie}">${emojiEspecie} ${animal.especie}</span>
+                    <span class="species-chip ${chipEspecie}">${animal.especie}</span>
                 </div>
                 <div class="pet-meta-tags">
-                    <span class="meta-tag">🎂 ${formatarIdade(animal.idadeMeses)}</span>
-                    <span class="meta-tag">📏 ${PORTE_LABEL[animal.porte]}</span>
+                    <span class="meta-tag">${formatarIdade(animal.idadeMeses)}</span>
+                    <span class="meta-tag">Porte ${PORTE_LABEL[animal.porte]}</span>
                     <span class="meta-tag">${genero}</span>
                 </div>
                 <p class="pet-card-desc">${escapar(animal.descricao)}</p>
                 <div class="pet-card-footer">
-                    <button type="button" class="btn btn-outline btn-sm" data-acao="detalhes" data-id="${animal.id}">Ver Detalhes 🩺</button>
+                    <button type="button" class="btn btn-outline btn-sm" data-acao="detalhes" data-id="${animal.id}">Ver Detalhes</button>
                     <button type="button" class="btn btn-primary btn-sm" data-acao="adotar" data-id="${animal.id}" ${disponivel ? '' : 'disabled'}>
-                        ${animal.modalidade === 'LAR_TEMPORARIO' ? 'Acolher 🏡' : 'Adotar ❤️'}
+                        ${animal.modalidade === 'LAR_TEMPORARIO' ? 'Acolher' : 'Adotar'}
                     </button>
                 </div>
             </div>
@@ -404,15 +426,15 @@ function verDetalhes(animalId) {
     const ficha = animal.fichaMedica || { vacinas: [] };
 
     const chipsEspecificos = animal.especie === 'Cachorro'
-        ? `<span class="meta-tag">⚡ ${ENERGIA_LABEL[animal.nivelEnergia] || '—'}</span>
-           <span class="meta-tag">${animal.sociavelComCaes ? '🤝 Sociável com cães' : '😾 Necessita atenção com cães'}</span>`
-        : `<span class="meta-tag">${animal.testadoFivFelv ? '🧪 Testado FIV/FeLV' : '🧪 Sem teste FIV/FeLV'}</span>
-           ${animal.testadoFivFelv ? `<span class="meta-tag">${animal.negativoFivFelv ? '✅ Negativo' : '⚠️ Positivo'}</span>` : ''}
-           <span class="meta-tag">${animal.adaptadoApartamento ? '🏢 Adaptado a apartamento' : '🌳 Melhor com área externa'}</span>`;
+        ? `<span class="meta-tag">${ENERGIA_LABEL[animal.nivelEnergia] || '—'}</span>
+           <span class="meta-tag">${animal.sociavelComCaes ? 'Sociável com cães' : 'Necessita atenção com cães'}</span>`
+        : `<span class="meta-tag">${animal.testadoFivFelv ? 'Testado FIV/FeLV' : 'Sem teste FIV/FeLV'}</span>
+           ${animal.testadoFivFelv ? `<span class="meta-tag">${animal.negativoFivFelv ? 'Negativo FIV/FeLV' : 'Positivo FIV/FeLV'}</span>` : ''}
+           <span class="meta-tag">${animal.adaptadoApartamento ? 'Adaptado a apartamento' : 'Melhor com área externa'}</span>`;
 
     const vacinas = (ficha.vacinas || []).map(v => `
         <li class="vaccine-item">
-            <strong>💉 ${escapar(v.nomeVacina)}</strong>
+            <strong>${escapar(v.nomeVacina)}</strong>
             <span>${formatarData(v.dataAplicacao)} · Lote ${escapar(v.lote || '—')}</span>
         </li>`).join('');
 
@@ -429,30 +451,30 @@ function verDetalhes(animalId) {
                 <h4 class="detail-name">${escapar(animal.nome)}</h4>
                 <div class="detail-chips">
                     <span class="species-chip ${animal.especie === 'Gato' ? 'species-gato' : 'species-cachorro'}">${animal.especie}</span>
-                    <span class="meta-tag">🎂 ${formatarIdade(animal.idadeMeses)}</span>
-                    <span class="meta-tag">📏 ${PORTE_LABEL[animal.porte]}</span>
-                    <span class="meta-tag">${animal.sexo === 'M' ? '♂ Macho' : '♀ Fêmea'}</span>
+                    <span class="meta-tag">${formatarIdade(animal.idadeMeses)}</span>
+                    <span class="meta-tag">Porte ${PORTE_LABEL[animal.porte]}</span>
+                    <span class="meta-tag">${animal.sexo === 'M' ? 'Macho' : 'Fêmea'}</span>
                 </div>
                 <p class="detail-desc">${escapar(animal.descricao)}</p>
 
-                <h5 class="detail-section-title">🧬 Características</h5>
+                <h5 class="detail-section-title">Características</h5>
                 <div class="detail-chips">${chipsEspecificos}</div>
 
-                <h5 class="detail-section-title">📋 Ficha Médica</h5>
+                <h5 class="detail-section-title">Ficha Médica</h5>
                 <div class="detail-chips">
-                    <span class="badge ${ficha.castrado ? 'badge-disponivel' : 'badge-analise'}">${ficha.castrado ? '✅ Castrado' : '⛔ Não castrado'}</span>
-                    <span class="badge ${ficha.vermifugado ? 'badge-disponivel' : 'badge-analise'}">${ficha.vermifugado ? '✅ Vermifugado' : '⛔ Não vermifugado'}</span>
+                    <span class="badge ${ficha.castrado ? 'badge-disponivel' : 'badge-analise'}">${ficha.castrado ? 'Castrado' : 'Não castrado'}</span>
+                    <span class="badge ${ficha.vermifugado ? 'badge-disponivel' : 'badge-analise'}">${ficha.vermifugado ? 'Vermifugado' : 'Não vermifugado'}</span>
                 </div>
                 <p class="detail-desc">Observações clínicas: ${escapar(ficha.observacoesClinicas) || '—'}</p>
 
-                <h5 class="detail-section-title">💉 Vacinas (${(ficha.vacinas || []).length})</h5>
+                <h5 class="detail-section-title">Vacinas (${(ficha.vacinas || []).length})</h5>
                 ${vacinas ? `<ul class="vaccine-list">${vacinas}</ul>` : '<p class="detail-desc">Nenhuma vacina registrada.</p>'}
             </div>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-outline" data-close-modal="modal-detalhes">Fechar</button>
             <button type="button" class="btn btn-primary" data-acao="adotar" data-id="${animal.id}" ${animal.status === 'DISPONIVEL' ? '' : 'disabled'}>
-                ${animal.modalidade === 'LAR_TEMPORARIO' ? 'Acolher em Lar Temporário 🏡' : 'Solicitar Adoção ❤️'}
+                ${animal.modalidade === 'LAR_TEMPORARIO' ? 'Acolher em Lar Temporário' : 'Solicitar Adoção'}
             </button>
         </div>`;
 
@@ -468,9 +490,8 @@ function renderMinhasSolicitacoes() {
     if (minhas.length === 0) {
         lista.innerHTML = `
             <div class="empty-state">
-                <span class="empty-emoji">📋</span>
                 Você ainda não registrou solicitações neste navegador.<br>
-                Encontre um pet disponível no catálogo e clique em <strong>Adotar</strong>!
+                Encontre um animal disponível no catálogo e clique em <strong>Adotar</strong>.
             </div>`;
         atualizarContadores();
         return;
@@ -492,7 +513,6 @@ function renderAdminSolicitacoes() {
     if (filtradas.length === 0) {
         lista.innerHTML = `
             <div class="empty-state">
-                <span class="empty-emoji">📭</span>
                 Nenhuma solicitação ${filtro === 'TODOS' ? 'registrada' : STATUS_SOLICITACAO_LABEL[filtro].toLowerCase()}.
             </div>`;
         atualizarContadores();
@@ -519,10 +539,10 @@ function solicitacaoCardHtml(s, { modoAdotante }) {
     if (!modoAdotante) {
         if (s.status === 'PENDENTE') {
             acoes = `
-                <button type="button" class="btn btn-outline btn-sm" data-acao="editar-ficha" data-id="${animal.id}">🩺 Editar Ficha</button>
-                <button type="button" class="btn btn-outline btn-sm" data-acao="abrir-visita" data-id="${s.id}">📅 Agendar Visita</button>
-                <button type="button" class="btn btn-success btn-sm" data-acao="aprovar" data-id="${s.id}">✅ Aprovar</button>
-                <button type="button" class="btn btn-danger btn-sm" data-acao="recusar" data-id="${s.id}">✖ Recusar</button>`;
+                <button type="button" class="btn btn-outline btn-sm" data-acao="editar-ficha" data-id="${animal.id}">Editar Ficha</button>
+                <button type="button" class="btn btn-outline btn-sm" data-acao="abrir-visita" data-id="${s.id}">Agendar Visita</button>
+                <button type="button" class="btn btn-success btn-sm" data-acao="aprovar" data-id="${s.id}">Aprovar</button>
+                <button type="button" class="btn btn-danger btn-sm" data-acao="recusar" data-id="${s.id}">Recusar</button>`;
         } else if (s.status === 'RECUSADA' && justificativa) {
             acoes = `<span class="alert alert-danger" style="margin:0">Justificativa: ${escapar(justificativa)}</span>`;
         }
@@ -534,7 +554,7 @@ function solicitacaoCardHtml(s, { modoAdotante }) {
         ? `<div class="request-box">
                 <h4>Visita Presencial (UC06)</h4>
                 <p><span>Data e hora:</span> ${formatarDataHora(s.visita.dataHora)}</p>
-                <p><span>Status:</span> ${s.visita.realizada ? '✅ Realizada' : '⏳ Agendada'}</p>
+                <p><span>Status:</span> ${s.visita.realizada ? 'Realizada' : 'Agendada'}</p>
                 ${s.visita.observacoes ? `<p><span>Observações:</span> ${escapar(s.visita.observacoes)}</p>` : ''}
            </div>`
         : '';
@@ -542,16 +562,16 @@ function solicitacaoCardHtml(s, { modoAdotante }) {
     return `
         <article class="request-card">
             <div class="request-card-header">
-                <h3>🐾 ${escapar(animal.nome || 'Animal')} <span style="color:var(--text-muted);font-size:.85rem;font-weight:700">· Solicitação #${s.id}</span></h3>
+                <h3>${escapar(animal.nome || 'Animal')} <span style="color:var(--text-muted);font-size:.84rem;font-weight:600">· Solicitação #${s.id}</span></h3>
                 <span class="badge ${STATUS_SOLICITACAO_BADGE[s.status]}">${STATUS_SOLICITACAO_LABEL[s.status]}</span>
             </div>
 
             <div class="pet-mini-summary" style="margin-bottom:0">
                 <img class="mini-summary-photo" src="${escapar(foto)}" alt="Foto de ${escapar(animal.nome || '')}" loading="lazy">
                 <div class="mini-summary-info">
-                    <p class="mini-summary-title">${escapar(animal.nome || '')} ${animal.especie === 'Gato' ? '🐈' : '🐕'}</p>
+                    <p class="mini-summary-title">${escapar(animal.nome || '')} · ${escapar(animal.especie || '')}</p>
                     <div class="mini-summary-tags">
-                        <span class="meta-tag">🎂 ${formatarIdade(animal.idadeMeses || 0)}</span>
+                        <span class="meta-tag">${formatarIdade(animal.idadeMeses || 0)}</span>
                         <span class="meta-tag">${MODALIDADE_LABEL[modalidade]}</span>
                     </div>
                 </div>
@@ -568,7 +588,7 @@ function solicitacaoCardHtml(s, { modoAdotante }) {
                 <div class="request-box">
                     <h4>Perfil Residencial (UC03)</h4>
                     <p><span>Tipo de moradia:</span> ${MORADIA_LABEL[tipoMoradia] || tipoMoradia}</p>
-                    <p><span>Telas de proteção:</span> ${possuiTelas ? '✅ Sim' : '❌ Não'}</p>
+                    <p><span>Telas de proteção:</span> ${possuiTelas ? 'Sim' : 'Não'}</p>
                     <p><span>Modalidade:</span> ${MODALIDADE_LABEL[modalidade]}</p>
                     <p><span>Solicitada em:</span> ${formatarDataHora(s.dataSolicitacao)}</p>
                 </div>
@@ -586,8 +606,7 @@ function renderAdminAnimais() {
     if (animaisAbrigo.length === 0) {
         wrapper.innerHTML = `
             <div class="empty-state">
-                <span class="empty-emoji">🐶</span>
-                Nenhum animal cadastrado.
+                Nenhum animal cadastrado até o momento.
             </div>`;
         return;
     }
@@ -598,23 +617,23 @@ function renderAdminAnimais() {
         return `
             <tr>
                 <td>
-                    <div style="display:flex;align-items:center;gap:.6rem">
+                    <div style="display:flex;align-items:center;gap:.65rem">
                         <img class="animal-photo-thumb" src="${escapar(foto)}" alt="" loading="lazy">
                         <strong>${escapar(a.nome)}</strong>
                     </div>
                 </td>
-                <td>${a.especie === 'Gato' ? '🐈' : '🐕'} ${a.especie}</td>
+                <td>${a.especie}</td>
                 <td>${formatarIdade(a.idadeMeses)}</td>
                 <td><span class="badge ${STATUS_ANIMAL_BADGE[a.status]}">${STATUS_ANIMAL_LABEL[a.status]}</span></td>
                 <td>
                     <div class="detail-chips">
                         <span class="badge ${ficha.castrado ? 'badge-disponivel' : 'badge-analise'}">${ficha.castrado ? 'Castrado' : 'Não castrado'}</span>
                         <span class="badge ${ficha.vermifugado ? 'badge-disponivel' : 'badge-analise'}">${ficha.vermifugado ? 'Vermifugado' : 'Não vermif.'}</span>
-                        <span class="meta-tag">${(ficha.vacinas || []).length} vacinas</span>
+                        <span class="meta-tag">${(ficha.vacinas || []).length} vacina(s)</span>
                     </div>
                 </td>
                 <td>
-                    <button type="button" class="btn btn-outline btn-sm" data-acao="editar-ficha" data-id="${a.id}">🩺 Editar Ficha</button>
+                    <button type="button" class="btn btn-outline btn-sm" data-acao="editar-ficha" data-id="${a.id}">Editar Ficha</button>
                 </td>
             </tr>`;
     }).join('');
@@ -636,9 +655,8 @@ function renderAdminVisitas() {
     if (state.visitas.length === 0) {
         lista.innerHTML = `
             <div class="empty-state">
-                <span class="empty-emoji">📅</span>
                 Nenhuma visita presencial agendada.<br>
-                Selecione uma solicitação e clique em <strong>Agendar Visita</strong>.
+                Selecione uma solicitação pendente e clique em <strong>Agendar Visita</strong>.
             </div>`;
         return;
     }
@@ -651,12 +669,12 @@ function renderAdminVisitas() {
         return `
         <article class="request-card">
             <div class="request-card-header">
-                <h3>📅 Visita — ${escapar(nomeAnimal)}</h3>
+                <h3>Visita — ${escapar(nomeAnimal)}</h3>
                 <span class="badge ${STATUS_VISITA_BADGE[statusVisita] || 'badge-analise'}">${STATUS_VISITA_LABEL[statusVisita] || statusVisita}</span>
             </div>
             <div class="request-columns">
                 <div class="request-box">
-                    <h4>Detalhes</h4>
+                    <h4>Detalhes do Agendamento</h4>
                     <p><span>Data e hora:</span> ${formatarDataHora(v.dataHora)}</p>
                     <p><span>Adotante:</span> ${escapar(nomeAdotante)}</p>
                     <p><span>Observações:</span> ${escapar(v.observacoes) || '—'}</p>
@@ -664,7 +682,7 @@ function renderAdminVisitas() {
             </div>
             ${statusVisita === 'AGENDADA' ? `
             <div class="request-actions">
-                <button type="button" class="btn btn-success btn-sm" data-acao="realizar-visita" data-id="${v.id}">✅ Marcar Realizada</button>
+                <button type="button" class="btn btn-success btn-sm" data-acao="realizar-visita" data-id="${v.id}">Marcar Realizada</button>
             </div>` : ''}
         </article>`;
     }).join('');
@@ -701,14 +719,15 @@ function abrirModalAdocao(animalId) {
     resumo.innerHTML = `
         <img class="mini-summary-photo" src="${escapar(foto)}" alt="" loading="lazy">
         <div class="mini-summary-info">
-            <p class="mini-summary-title">${escapar(animal.nome)} ${animal.especie === 'Gato' ? '🐈' : '🐕'}</p>
+            <p class="mini-summary-title">${escapar(animal.nome)} · ${animal.especie}</p>
             <div class="mini-summary-tags">
-                <span class="meta-tag">🎂 ${formatarIdade(animal.idadeMeses)}</span>
+                <span class="meta-tag">${formatarIdade(animal.idadeMeses)}</span>
                 <span class="badge ${animal.modalidade === 'LAR_TEMPORARIO' ? 'badge-temporario' : 'badge-adotado'}">${MODALIDADE_LABEL[animal.modalidade]}</span>
             </div>
         </div>`;
 
     $('adocao-animal-id').value = animal.id;
+    $('adocao-modalidade').value = animal.modalidade || 'ADOCAO_DEFINITIVA';
     $('alerta-erro-adocao').classList.add('hidden');
     openModal('modal-adocao');
 }
@@ -893,9 +912,9 @@ function abrirModalFicha(animalId) {
     $('resumo-pet-ficha').innerHTML = `
         <img class="mini-summary-photo" src="${escapar(foto)}" alt="" loading="lazy">
         <div class="mini-summary-info">
-            <p class="mini-summary-title">${escapar(animal.nome)} ${animal.especie === 'Gato' ? '🐈' : '🐕'}</p>
+            <p class="mini-summary-title">${escapar(animal.nome)}</p>
             <div class="mini-summary-tags">
-                <span class="meta-tag">🎂 ${formatarIdade(animal.idadeMeses)}</span>
+                <span class="meta-tag">${formatarIdade(animal.idadeMeses)}</span>
                 <span class="badge ${animal.especie === 'Gato' ? 'species-gato' : 'species-cachorro'}">${animal.especie}</span>
             </div>
         </div>`;
@@ -1137,6 +1156,29 @@ function init() {
         state.filtros = { busca: '', especie: 'TODOS', porte: 'TODOS', sexo: 'TODOS', modalidade: 'TODOS', status: 'TODOS' };
         $('form-filtros').reset();
         atualizarCatalogoFiltrado();
+    });
+
+    // Atalhos rápidos de categorias (Estilo Paw & Purpose)
+    document.querySelectorAll('.category-card[data-quick-filter]').forEach(card => {
+        card.addEventListener('click', () => {
+            clearTimeout(buscaTimer);
+            const filtro = card.dataset.quickFilter;
+            state.filtros = { busca: '', especie: 'TODOS', porte: 'TODOS', sexo: 'TODOS', modalidade: 'TODOS', status: 'TODOS' };
+            $('form-filtros').reset();
+
+            if (filtro === 'Cachorro' || filtro === 'Gato') {
+                state.filtros.especie = filtro;
+                $('filtro-especie').value = filtro;
+            } else if (filtro === 'LAR_TEMPORARIO') {
+                state.filtros.modalidade = 'LAR_TEMPORARIO';
+                $('filtro-modalidade').value = 'LAR_TEMPORARIO';
+            } else if (filtro === 'PEQUENO') {
+                state.filtros.porte = 'PEQUENO';
+                $('filtro-porte').value = 'PEQUENO';
+            }
+
+            atualizarCatalogoFiltrado();
+        });
     });
 
     // Abas do painel admin
