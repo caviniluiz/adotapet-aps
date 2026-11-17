@@ -223,31 +223,37 @@ textarea:focus-visible {
     font-weight: 700;
 }
 
-.profile-switcher {
+.auth-area {
     display: flex;
     align-items: center;
-    gap: 0.45rem;
+}
+
+.auth-actions,
+.auth-user {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.user-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
     background: var(--card-bg);
+    border: 1px solid var(--border);
     padding: 0.3rem 0.45rem 0.3rem 0.8rem;
     border-radius: var(--radius-pill);
-    border: 1px solid var(--border);
-    font-size: 0.82rem;
 }
 
-.profile-switcher label {
+.user-name {
+    font-size: 0.84rem;
     font-weight: 600;
-    color: var(--text-muted);
-}
-
-.profile-switcher select {
-    border: none;
-    border-radius: var(--radius-pill);
-    padding: 0.28rem 0.6rem;
-    font-weight: 600;
-    font-size: 0.82rem;
-    background: var(--bg-alt);
     color: var(--text);
-    cursor: pointer;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 @media (min-width: 780px) {

@@ -33,6 +33,20 @@ export const api = {
         return request('/api/auth/perfis');
     },
 
+    login(identificador, senha) {
+        return request('/api/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ identificador, senha })
+        });
+    },
+
+    registrarAdotante(dados) {
+        return request('/api/auth/registro', {
+            method: 'POST',
+            body: JSON.stringify(dados)
+        });
+    },
+
     listarAnimais(filtros = {}) {
         const params = new URLSearchParams();
         Object.entries(filtros).forEach(([chave, valor]) => {

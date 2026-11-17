@@ -4,7 +4,7 @@
     solicitação de adoção, painel do gestor da ONG e loading)
    ============================================================ */
 
-import { state, setAdotanteAtivoId } from './state.js';
+import { state, setSessaoUsuario, limparSessaoUsuario } from './state.js';
 import { api } from './api.js';
 
 /* ==================== MAPAS / CONSTANTES ==================== */
@@ -189,28 +189,180 @@ function showView(viewId) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-async function switchPerfil(tipo) {
-    state.perfilAtivo = tipo;
+function atualizarUIAutenticacao() {
+    const guestBox = $('auth-guest-actions');
+    const userBox = $('auth-user-info');
+    const navSolicitacoes = $('nav-minhas-solicitacoes');
     const navOng = $('nav-painel-ong');
 
-    if (tipo === 'GESTOR_ONG') {
-        navOng.classList.remove('hidden');
-        if ($('view-painel-ong').classList.contains('hidden')) {
-            showView('view-painel-ong');
-        }
-    } else {
+    if (!state.usuarioLogado) {
+        guestBox.classList.remove('hidden');
+        userBox.classList.add('hidden');
+        navSolicitacoes.classList.add('hidden');
         navOng.classList.add('hidden');
+
+        if ($('view-catalogo').classList.contains('hidden')) {
+            showView('view-catalogo');
+        }
+        return;
+    }
+
+    guestBox.classList.add('hidden');
+    userBox.classList.remove('hidden');
+
+    $('auth-user-nome').textContent = state.usuarioLogado.nome || 'Usuário';
+    const badge = $('auth-user-badge');
+
+    if (state.perfilAtivo === 'GESTOR_ONG') {
+        badge.textContent = 'Gestor da ONG';
+        badge.className = 'badge badge-temporario';
+        navOng.classList.remove('hidden');
+        navSolicitacoes.classList.add('hidden');
+    } else {
+        badge.textContent = 'Adotante';
+        badge.className = 'badge badge-disponivel';
+        navSolicitacoes.classList.remove('hidden');
+        navOng.classList.add('hidden');
+
         if (!$('view-painel-ong').classList.contains('hidden')) {
             showView('view-catalogo');
         }
     }
+}
+
+function abrirModalLogin(preservarPendencia = false) {
+    if (!preservarPendencia) {
+        state.animalPendenteAdocaoId = null;
+    }
+    $('form-login').reset();
+    $('alerta-login').classList.add('hidden');
+    openModal('modal-login');
+}
+
+function abrirModalRegistro(preservarPendencia = false) {
+    if (!preservarPendencia) {
+        state.animalPendenteAdocaoId = null;
+    }
+    $('form-registro').reset();
+    $('alerta-registro').classList.add('hidden');
+    openModal('modal-registro');
+}
+
+async function enviarLogin(e) {
+    e.preventDefault();
+    const identificador = $('login-identificador').value.trim();
+    const senha = $('login-senha').value;
+
+    if (!identificador || !senha) {
+        mostrarErroModal('alerta-login', 'Informe seu e-mail (ou CPF) e senha para entrar.');
+        return;
+    }
+
+    $('alerta-login').classList.add('hidden');
+    const btnSubmit = e.submitter || $('btn-submit-login');
 
     try {
-        await sincronizarEstadoAPI();
+        await executarComLoading(btnSubmit, 'Entrando...', async () => {
+            const resposta = await api.login(identificador, senha);
+            setSessaoUsuario(resposta.usuario);
+            closeModal('modal-login');
+            $('form-login').reset();
+
+            atualizarUIAutenticacao();
+            await sincronizarEstadoAPI();
+            showToast(resposta.mensagem || 'Login realizado com sucesso!', 'success');
+
+            if (resposta.perfil === 'GESTOR_ONG') {
+                state.animalPendenteAdocaoId = null;
+                showView('view-painel-ong');
+            } else if (state.animalPendenteAdocaoId) {
+                const petId = state.animalPendenteAdocaoId;
+                state.animalPendenteAdocaoId = null;
+                abrirModalAdocao(petId);
+            }
+        });
     } catch (erro) {
-        showToast(erro.message || 'Erro ao atualizar dados para o perfil selecionado.', 'error');
+        mostrarErroModal('alerta-login', erro.message);
+    }
+}
+
+async function enviarRegistroAdotante(e) {
+    e.preventDefault();
+
+    const nome = $('registro-nome').value.trim();
+    const email = $('registro-email').value.trim();
+    const cpf = $('registro-cpf').value.trim();
+    const idade = parseInt($('registro-idade').value, 10);
+    const telefone = $('registro-telefone').value.trim();
+    const senha = $('registro-senha').value;
+    const tipoMoradia = $('registro-moradia').value;
+    const telas = $('registro-telas').value;
+
+    if (!nome || !email || !cpf || Number.isNaN(idade) || !telefone || !senha || !tipoMoradia || telas === '') {
+        mostrarErroModal('alerta-registro', 'Preencha todos os campos obrigatórios (*) para criar sua conta.');
+        return;
+    }
+
+    if (!validarCPF(cpf)) {
+        mostrarErroModal('alerta-registro', 'CPF inválido. Verifique os dígitos informados (formato 000.000.000-00).');
+        return;
+    }
+
+    if (!validarTelefone(telefone)) {
+        mostrarErroModal('alerta-registro', 'Telefone inválido. Informe DDD + número com 10 ou 11 dígitos.');
+        return;
+    }
+
+    if (senha.length < 4) {
+        mostrarErroModal('alerta-registro', 'A senha deve ter no mínimo 4 caracteres.');
+        return;
+    }
+
+    $('alerta-registro').classList.add('hidden');
+    const btnSubmit = e.submitter || $('btn-submit-registro');
+
+    try {
+        await executarComLoading(btnSubmit, 'Registrando...', async () => {
+            const resposta = await api.registrarAdotante({
+                nome,
+                email,
+                cpf,
+                idade,
+                telefone,
+                senha,
+                tipoMoradia,
+                possuiTelasProtecao: telas === 'true'
+            });
+
+            setSessaoUsuario(resposta.usuario);
+            closeModal('modal-registro');
+            $('form-registro').reset();
+
+            atualizarUIAutenticacao();
+            await sincronizarEstadoAPI();
+            showToast(resposta.mensagem || 'Cadastro realizado com sucesso!', 'success');
+
+            if (state.animalPendenteAdocaoId) {
+                const petId = state.animalPendenteAdocaoId;
+                state.animalPendenteAdocaoId = null;
+                abrirModalAdocao(petId);
+            }
+        });
+    } catch (erro) {
+        mostrarErroModal('alerta-registro', erro.message);
+    }
+}
+
+async function realizarLogout() {
+    limparSessaoUsuario();
+    atualizarUIAutenticacao();
+    showView('view-catalogo');
+    try {
+        await sincronizarEstadoAPI();
+    } catch (_) {
         renderAll();
     }
+    showToast('Você saiu da sua conta.', 'success');
 }
 
 /* ==================== MODAIS ==================== */
@@ -714,6 +866,18 @@ function abrirModalAdocao(animalId) {
         return;
     }
 
+    if (!state.usuarioLogado) {
+        state.animalPendenteAdocaoId = animal.id;
+        showToast('Entre ou registre-se como adotante para solicitar a adoção.', 'error');
+        abrirModalLogin(true);
+        return;
+    }
+
+    if (state.perfilAtivo === 'GESTOR_ONG') {
+        showToast('Contas de Gestor da ONG não enviam solicitações de adoção. Entre com uma conta de Adotante.', 'error');
+        return;
+    }
+
     const resumo = $('resumo-pet-adocao');
     const foto = animal.fotoUrl || FOTOS_DEFAULT[animal.especie];
     resumo.innerHTML = `
@@ -727,6 +891,15 @@ function abrirModalAdocao(animalId) {
         </div>`;
 
     $('adocao-animal-id').value = animal.id;
+    $('adocao-nome').value = state.usuarioLogado.nome || '';
+    $('adocao-cpf').value = state.usuarioLogado.cpf || '';
+    $('adocao-idade').value = state.usuarioLogado.idade ?? '';
+    $('adocao-telefone').value = state.usuarioLogado.telefone || '';
+    $('adocao-moradia').value = state.usuarioLogado.tipoMoradia || '';
+    $('adocao-telas').value =
+        state.usuarioLogado.possuiTelasProtecao === undefined || state.usuarioLogado.possuiTelasProtecao === null
+            ? ''
+            : String(Boolean(state.usuarioLogado.possuiTelasProtecao));
     $('adocao-modalidade').value = animal.modalidade || 'ADOCAO_DEFINITIVA';
     $('alerta-erro-adocao').classList.add('hidden');
     openModal('modal-adocao');
@@ -767,8 +940,10 @@ async function enviarSolicitacaoAdocao(e) {
         await executarComLoading(btnSubmit, 'Enviando...', async () => {
             const resposta = await api.enviarSolicitacao({
                 animalId,
+                adotanteId: state.adotanteAtivoId,
                 modalidade,
                 adotante: {
+                    id: state.adotanteAtivoId,
                     nome,
                     cpf,
                     idade,
@@ -778,8 +953,12 @@ async function enviarSolicitacaoAdocao(e) {
                 }
             });
 
-            if (resposta.solicitacao?.adotanteId) {
-                setAdotanteAtivoId(resposta.solicitacao.adotanteId);
+            if (resposta.solicitacao?.adotante) {
+                setSessaoUsuario({
+                    ...resposta.solicitacao.adotante,
+                    perfil: 'ADOTANTE'
+                });
+                atualizarUIAutenticacao();
             }
 
             await sincronizarEstadoAPI();
@@ -1132,8 +1311,28 @@ function init() {
 
     $('btn-home').addEventListener('click', () => showView('view-catalogo'));
 
-    // Troca de perfil (RNF03)
-    $('select-perfil-ativo').addEventListener('change', (e) => switchPerfil(e.target.value));
+    // Autenticação (Entrar / Registrar-se / Sair)
+    $('btn-abrir-login').addEventListener('click', () => abrirModalLogin(false));
+    $('btn-abrir-registro').addEventListener('click', () => abrirModalRegistro(false));
+    $('btn-logout').addEventListener('click', realizarLogout);
+
+    $('btn-ir-para-registro').addEventListener('click', () => {
+        closeModal('modal-login');
+        abrirModalRegistro(true);
+    });
+    $('btn-ir-para-login').addEventListener('click', () => {
+        closeModal('modal-registro');
+        abrirModalLogin(true);
+    });
+
+    $('btn-demo-gestor').addEventListener('click', () => {
+        $('login-identificador').value = 'admin@adotapet.org';
+        $('login-senha').value = 'admin123';
+    });
+    $('btn-demo-adotante').addEventListener('click', () => {
+        $('login-identificador').value = 'mariana@email.com';
+        $('login-senha').value = '123456';
+    });
 
     // Filtros do catálogo (RNF01 — assíncrono via API)
     let buscaTimer = null;
@@ -1200,8 +1399,16 @@ function init() {
     $('adocao-telefone').addEventListener('input', e => {
         e.target.value = aplicarMascaraTelefone(e.target.value);
     });
+    $('registro-cpf').addEventListener('input', e => {
+        e.target.value = aplicarMascaraCPF(e.target.value);
+    });
+    $('registro-telefone').addEventListener('input', e => {
+        e.target.value = aplicarMascaraTelefone(e.target.value);
+    });
 
     // Formulários
+    $('form-login').addEventListener('submit', enviarLogin);
+    $('form-registro').addEventListener('submit', enviarRegistroAdotante);
     $('form-adocao').addEventListener('submit', enviarSolicitacaoAdocao);
     $('form-recusar-solicitacao').addEventListener('submit', confirmarRecusa);
     $('form-agendar-visita').addEventListener('submit', agendarVisita);
@@ -1238,6 +1445,7 @@ function init() {
         document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(m => closeModal(m.id));
     });
 
+    atualizarUIAutenticacao();
     carregarDadosIniciais();
 }
 

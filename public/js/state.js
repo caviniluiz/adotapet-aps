@@ -1,14 +1,24 @@
 /* ============================================================
-   STATE — Estado global da SPA AdotaPet
+   STATE — Estado global e sessão autenticada da SPA AdotaPet
    ============================================================ */
 
-const adotanteSalvo = typeof localStorage !== 'undefined'
-    ? localStorage.getItem('adotapet_adotante_id')
-    : null;
+function lerSessaoSalva() {
+    if (typeof localStorage === 'undefined') return null;
+    try {
+        const bruto = localStorage.getItem('adotapet_sessao');
+        return bruto ? JSON.parse(bruto) : null;
+    } catch {
+        return null;
+    }
+}
+
+const sessaoSalva = lerSessaoSalva();
 
 export const state = {
-    perfilAtivo: 'ADOTANTE', // 'ADOTANTE' | 'GESTOR_ONG'
-    adotanteAtivoId: adotanteSalvo ? Number(adotanteSalvo) : null,
+    usuarioLogado: sessaoSalva,
+    perfilAtivo: sessaoSalva?.perfil || 'VISITANTE', // 'VISITANTE' | 'ADOTANTE' | 'GESTOR_ONG'
+    adotanteAtivoId: sessaoSalva?.perfil === 'ADOTANTE' ? Number(sessaoSalva.id) : null,
+    animalPendenteAdocaoId: null,
     perfis: [],
     todosAnimais: [],
     animais: [],
@@ -25,14 +35,29 @@ export const state = {
     filtroAdminSolicitacoes: 'TODOS'
 };
 
-export function setAdotanteAtivoId(id) {
-    const idNum = id ? Number(id) : null;
-    state.adotanteAtivoId = idNum;
+export function setSessaoUsuario(usuario) {
+    if (!usuario) {
+        limparSessaoUsuario();
+        return;
+    }
+
+    state.usuarioLogado = usuario;
+    state.perfilAtivo = usuario.perfil || 'ADOTANTE';
+    state.adotanteAtivoId = state.perfilAtivo === 'ADOTANTE' ? Number(usuario.id) : null;
+
     if (typeof localStorage !== 'undefined') {
-        if (idNum) {
-            localStorage.setItem('adotapet_adotante_id', String(idNum));
-        } else {
-            localStorage.removeItem('adotapet_adotante_id');
-        }
+        localStorage.setItem('adotapet_sessao', JSON.stringify(usuario));
+    }
+}
+
+export function limparSessaoUsuario() {
+    state.usuarioLogado = null;
+    state.perfilAtivo = 'VISITANTE';
+    state.adotanteAtivoId = null;
+    state.animalPendenteAdocaoId = null;
+
+    if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('adotapet_sessao');
+        localStorage.removeItem('adotapet_adotante_id');
     }
 }

@@ -38,7 +38,7 @@
                 <button type="button" class="nav-link active" data-view="view-catalogo">
                     Catálogo
                 </button>
-                <button type="button" class="nav-link" data-view="view-minhas-solicitacoes">
+                <button type="button" class="nav-link hidden" id="nav-minhas-solicitacoes" data-view="view-minhas-solicitacoes">
                     Solicitações <span id="badge-total-solicitacoes" class="nav-counter hidden">0</span>
                 </button>
                 <button type="button" class="nav-link nav-ong hidden" id="nav-painel-ong" data-view="view-painel-ong">
@@ -46,13 +46,19 @@
                 </button>
             </nav>
 
-            <!-- Seletor de Perfil de Acesso (RNF03) -->
-            <div class="profile-switcher">
-                <label for="select-perfil-ativo">Perfil</label>
-                <select id="select-perfil-ativo" aria-label="Selecionar perfil de acesso">
-                    <option value="ADOTANTE">Adotante</option>
-                    <option value="GESTOR_ONG">Gestor da ONG</option>
-                </select>
+            <!-- Controle de Autenticação (Entrar / Registrar-se / Usuário Conectado) -->
+            <div class="auth-area">
+                <div id="auth-guest-actions" class="auth-actions">
+                    <button type="button" class="btn btn-outline btn-sm" id="btn-abrir-login">Entrar</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="btn-abrir-registro">Registrar-se</button>
+                </div>
+                <div id="auth-user-info" class="auth-user hidden">
+                    <div class="user-chip">
+                        <span id="auth-user-nome" class="user-name">Usuário</span>
+                        <span id="auth-user-badge" class="badge badge-disponivel">Adotante</span>
+                    </div>
+                    <button type="button" class="btn btn-outline btn-sm" id="btn-logout">Sair</button>
+                </div>
             </div>
         </div>
     </header>
@@ -698,6 +704,132 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline" data-close-modal="modal-recusar">Cancelar</button>
                         <button type="submit" class="btn btn-danger">Confirmar Recusa</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 6: ENTRAR (LOGIN — ADOTANTE OU GESTOR DA ONG) -->
+    <div id="modal-login" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-login-titulo">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-login-titulo">Entrar na sua conta</h3>
+                <button type="button" class="modal-close" data-close-modal="modal-login" aria-label="Fechar">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="alerta-login" class="alert alert-danger hidden"></div>
+
+                <form id="form-login" novalidate>
+                    <div class="form-field">
+                        <label for="login-identificador">E-mail ou CPF *</label>
+                        <input type="text" id="login-identificador" placeholder="seu@email.com ou 000.000.000-00" required>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="login-senha">Senha *</label>
+                        <input type="password" id="login-senha" placeholder="Digite sua senha" required>
+                    </div>
+
+                    <div class="demo-credentials-box">
+                        <p><strong>Acesso rápido para avaliação:</strong></p>
+                        <div class="demo-credentials-actions">
+                            <button type="button" class="btn btn-outline btn-sm" id="btn-demo-gestor">
+                                Preencher Gestor ONG (admin@adotapet.org)
+                            </button>
+                            <button type="button" class="btn btn-outline btn-sm" id="btn-demo-adotante">
+                                Preencher Adotante Demo (mariana@email.com)
+                            </button>
+                        </div>
+                    </div>
+
+                    <p class="modal-switch-text">
+                        Ainda não tem cadastro?
+                        <button type="button" class="link-button" id="btn-ir-para-registro">Criar conta de adotante</button>
+                    </p>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" data-close-modal="modal-login">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btn-submit-login">Entrar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 7: REGISTRAR-SE (EXCLUSIVO PARA ADOTANTE — RF01) -->
+    <div id="modal-registro" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-registro-titulo">
+        <div class="modal-card modal-lg">
+            <div class="modal-header">
+                <h3 id="modal-registro-titulo">Criar Conta de Adotante</h3>
+                <button type="button" class="modal-close" data-close-modal="modal-registro" aria-label="Fechar">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="form-hint">O cadastro nesta página é exclusivo para candidatos à adoção ou lar temporário.</p>
+                <div id="alerta-registro" class="alert alert-danger hidden"></div>
+
+                <form id="form-registro" novalidate>
+                    <fieldset class="form-section">
+                        <legend>Dados Pessoais e Acesso</legend>
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="registro-nome">Nome Completo *</label>
+                                <input type="text" id="registro-nome" required>
+                            </div>
+                            <div class="form-field">
+                                <label for="registro-email">E-mail *</label>
+                                <input type="email" id="registro-email" placeholder="seu@email.com" required>
+                            </div>
+                            <div class="form-field">
+                                <label for="registro-cpf">CPF *</label>
+                                <input type="text" id="registro-cpf" maxlength="14" inputmode="numeric" placeholder="000.000.000-00" required>
+                            </div>
+                            <div class="form-field">
+                                <label for="registro-idade">Idade (anos) *</label>
+                                <input type="number" id="registro-idade" min="1" required>
+                            </div>
+                            <div class="form-field">
+                                <label for="registro-telefone">Telefone *</label>
+                                <input type="text" id="registro-telefone" maxlength="15" inputmode="tel" placeholder="(00) 00000-0000" required>
+                            </div>
+                            <div class="form-field">
+                                <label for="registro-senha">Senha * <small>(mín. 4 caracteres)</small></label>
+                                <input type="password" id="registro-senha" minlength="4" required>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="form-section">
+                        <legend>Perfil Residencial (UC03)</legend>
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="registro-moradia">Tipo de Moradia *</label>
+                                <select id="registro-moradia" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="CASA">Casa</option>
+                                    <option value="APARTAMENTO">Apartamento</option>
+                                    <option value="CHACARA">Chácara / Sítio</option>
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label for="registro-telas">Possui Telas de Proteção? *</label>
+                                <select id="registro-telas" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="true">Sim</option>
+                                    <option value="false">Não</option>
+                                </select>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <p class="modal-switch-text">
+                        Já possui cadastro?
+                        <button type="button" class="link-button" id="btn-ir-para-login">Entrar na conta</button>
+                    </p>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" data-close-modal="modal-registro">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btn-submit-registro">Criar Conta</button>
                     </div>
                 </form>
             </div>
