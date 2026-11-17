@@ -14,6 +14,14 @@ const PERFIS = {
     GESTOR_ONG: 'GESTOR_ONG'
 };
 
+const GESTOR_PADRAO = {
+    id: 1,
+    nome: 'Gestor da ONG',
+    email: 'admin@adotapet.org',
+    senha: 'admin123',
+    perfil: 'GESTOR_ONG'
+};
+
 function parseBooleano(valor, padrao = false) {
     if (valor === undefined || valor === null || valor === '') return padrao;
     if (typeof valor === 'boolean') return valor;
@@ -76,6 +84,7 @@ module.exports = {
     DATA_DIR,
     ARQUIVOS_DADOS,
     PERFIS,
+    GESTOR_PADRAO,
     parseBooleano,
     validarFormatoCPF,
     formatarCPF,

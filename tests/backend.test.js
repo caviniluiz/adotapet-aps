@@ -440,5 +440,84 @@ describe('AdotaPet Backend — POO, Rotas REST e Regras de Negócio (RN01 a RN04
         assert.equal(res404.status, 404);
         assert.equal(dados404.erro, true);
     });
+
+    it('13. Autenticação (POST /api/auth/registro e /api/auth/login): Registro exclusivo de Adotante e Login de Adotante/Gestor', async () => {
+        // Registro de novo adotante enviando CPF e telefone sem pontuação
+        const resRegistro = await fetch(`${baseUrl}/api/auth/registro`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nome: 'Juliana Alves',
+                email: 'juliana@email.com',
+                senha: 'segredo123',
+                cpf: '39053344705',
+                idade: 27,
+                telefone: '16991234567',
+                tipoMoradia: 'APARTAMENTO',
+                possuiTelasProtecao: true
+            })
+        });
+        const dadosReg = await resRegistro.json();
+        assert.equal(resRegistro.status, 201);
+        assert.equal(dadosReg.perfil, 'ADOTANTE');
+        assert.equal(dadosReg.usuario.perfil, 'ADOTANTE');
+        assert.equal(dadosReg.usuario.cpf, '390.533.447-05');
+        assert.equal(dadosReg.usuario.telefone, '(16) 99123-4567');
+        assert.equal(dadosReg.usuario.senha, undefined);
+
+        // Tentativa de registro duplicado (e-mail ou CPF) deve retornar 409
+        const resDup = await fetch(`${baseUrl}/api/auth/registro`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nome: 'Juliana Clone',
+                email: 'juliana@email.com',
+                senha: 'outra123',
+                cpf: '390.533.447-05',
+                idade: 28,
+                telefone: '16991234567',
+                tipoMoradia: 'CASA',
+                possuiTelasProtecao: false
+            })
+        });
+        assert.equal(resDup.status, 409);
+
+        // Login do Adotante por e-mail e por CPF
+        const resLoginEmail = await fetch(`${baseUrl}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ identificador: 'juliana@email.com', senha: 'segredo123' })
+        });
+        const dadosLoginEmail = await resLoginEmail.json();
+        assert.equal(resLoginEmail.status, 200);
+        assert.equal(dadosLoginEmail.perfil, 'ADOTANTE');
+        assert.equal(dadosLoginEmail.usuario.senha, undefined);
+
+        const resLoginCpf = await fetch(`${baseUrl}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ identificador: '39053344705', senha: 'segredo123' })
+        });
+        assert.equal(resLoginCpf.status, 200);
+
+        // Login com senha incorreta deve falhar com 401
+        const resSenhaErrada = await fetch(`${baseUrl}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ identificador: 'juliana@email.com', senha: 'errada' })
+        });
+        assert.equal(resSenhaErrada.status, 401);
+
+        // Login do Gestor da ONG
+        const resLoginGestor = await fetch(`${baseUrl}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ identificador: 'admin@adotapet.org', senha: 'admin123' })
+        });
+        const dadosGestor = await resLoginGestor.json();
+        assert.equal(resLoginGestor.status, 200);
+        assert.equal(dadosGestor.perfil, 'GESTOR_ONG');
+        assert.equal(dadosGestor.usuario.perfil, 'GESTOR_ONG');
+    });
 });
 

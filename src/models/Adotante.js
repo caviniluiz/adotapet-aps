@@ -8,6 +8,8 @@ class Adotante {
     constructor({
         id,
         nome,
+        email = '',
+        senha = '',
         cpf = '',
         idade,
         telefone = '',
@@ -27,6 +29,8 @@ class Adotante {
 
         this.id = id ? Number(id) : Date.now();
         this.nome = String(nome).trim();
+        this.email = email ? String(email).trim().toLowerCase() : '';
+        this.senha = senha !== undefined && senha !== null ? String(senha) : '';
         this.cpf = cpfLimpo ? formatarCPF(cpfLimpo) : '';
         this.idade = Number(idade);
         this.telefone = telefoneLimpo ? formatarTelefone(telefoneLimpo) : '';
@@ -49,15 +53,23 @@ class Adotante {
         return this.idade >= 18;
     }
 
-    toJSON() {
+    toPublicJSON() {
         return {
             id: this.id,
             nome: this.nome,
+            email: this.email,
             cpf: this.cpf,
             idade: this.idade,
             telefone: this.telefone,
             tipoMoradia: this.tipoMoradia,
             possuiTelasProtecao: this.possuiTelasProtecao
+        };
+    }
+
+    toJSON() {
+        return {
+            ...this.toPublicJSON(),
+            senha: this.senha
         };
     }
 }

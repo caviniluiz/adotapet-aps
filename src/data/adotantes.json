@@ -2,28 +2,34 @@
   {
     "id": 1,
     "nome": "Mariana Souza",
+    "email": "mariana@email.com",
     "cpf": "123.456.789-09",
     "idade": 28,
     "telefone": "(11) 98765-4321",
     "tipoMoradia": "APARTAMENTO",
-    "possuiTelasProtecao": true
+    "possuiTelasProtecao": true,
+    "senha": "123456"
   },
   {
     "id": 2,
     "nome": "Carlos Eduardo Lima",
+    "email": "carlos@email.com",
     "cpf": "987.654.321-00",
     "idade": 34,
     "telefone": "(11) 97654-3210",
     "tipoMoradia": "CASA",
-    "possuiTelasProtecao": false
+    "possuiTelasProtecao": false,
+    "senha": "123456"
   },
   {
     "id": 3,
     "nome": "Lucas Mendes (Menor de Idade)",
+    "email": "lucas@email.com",
     "cpf": "111.444.777-35",
     "idade": 16,
     "telefone": "(11) 96543-2109",
     "tipoMoradia": "APARTAMENTO",
-    "possuiTelasProtecao": true
+    "possuiTelasProtecao": true,
+    "senha": "123456"
   }
 ]

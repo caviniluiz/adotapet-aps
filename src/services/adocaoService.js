@@ -20,7 +20,7 @@ const adocaoService = {
         return {
             ...solicitacao.toJSON(),
             animal: animal ? animal.toJSON() : null,
-            adotante: adotante ? adotante.toJSON() : null,
+            adotante: adotante ? adotante.toPublicJSON() : null,
             visita: visita ? visita.toJSON() : null
         };
     },

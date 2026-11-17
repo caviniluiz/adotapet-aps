@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 
 const repo = require('./src/repositories/jsonRepository');
+const adotantesService = require('./src/services/adotantesService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,7 +30,7 @@ app.get('/api/health', (req, res) => {
  * Retorna os perfis de demonstração disponíveis para alternância rápida na SPA
  */
 app.get('/api/auth/perfis', (req, res) => {
-    const adotantes = repo.listarAdotantes().map(a => a.toJSON());
+    const adotantes = repo.listarAdotantes().map(a => a.toPublicJSON());
     res.json({
         perfis: [
             {
@@ -48,6 +49,44 @@ app.get('/api/auth/perfis', (req, res) => {
             }
         ]
     });
+});
+
+/**
+ * POST /api/auth/login
+ * Autentica Adotante (e-mail/CPF + senha) ou Gestor da ONG
+ */
+app.post('/api/auth/login', (req, res) => {
+    try {
+        const sessao = adotantesService.autenticarUsuario(req.body);
+        res.json({
+            mensagem: `Bem-vindo(a), ${sessao.usuario.nome}!`,
+            ...sessao
+        });
+    } catch (erro) {
+        res.status(erro.statusHttp || 401).json({
+            erro: true,
+            mensagem: erro.message
+        });
+    }
+});
+
+/**
+ * POST /api/auth/registro
+ * Registra nova conta exclusiva para Adotante (nunca cria Gestor da ONG)
+ */
+app.post('/api/auth/registro', (req, res) => {
+    try {
+        const sessao = adotantesService.registrarAdotante(req.body);
+        res.status(201).json({
+            mensagem: 'Cadastro realizado com sucesso! Você já está conectado como Adotante.',
+            ...sessao
+        });
+    } catch (erro) {
+        res.status(erro.statusHttp || 400).json({
+            erro: true,
+            mensagem: erro.message
+        });
+    }
 });
 
 app.use('/api/animais', require('./src/routes/animaisRoutes'));
