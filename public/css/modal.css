@@ -27,7 +27,9 @@
     width: 100%;
     max-width: 600px;
     max-height: 90vh;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     box-shadow: 0 24px 60px rgba(43, 38, 35, 0.24);
     animation: card-in 0.22s ease;
 }
@@ -53,9 +55,8 @@
     justify-content: space-between;
     padding: 1.15rem 1.5rem;
     border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
     background: var(--card-bg);
+    flex-shrink: 0;
     z-index: 5;
 }
 
@@ -66,19 +67,42 @@
 }
 
 .modal-close {
+    position: relative;
+    flex-shrink: 0;
     width: 2.1rem;
     height: 2.1rem;
+    padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     background: var(--bg-alt);
     border: none;
     border-radius: 50%;
-    font-size: 1.2rem;
-    line-height: 1;
+    font-size: 0;
+    line-height: 0;
     color: var(--text-muted);
     cursor: pointer;
     transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.modal-close::before,
+.modal-close::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 13px;
+    height: 1.8px;
+    background: currentColor;
+    border-radius: 2px;
+}
+
+.modal-close::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.modal-close::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .modal-close:hover {
@@ -88,6 +112,30 @@
 
 .modal-body {
     padding: 1.4rem 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+    scrollbar-width: thin;
+    scrollbar-color: #D7CFC2 transparent;
+}
+
+.modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 8px 0;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background-color: #D7CFC2;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+    background-color: #B8AFA2;
 }
 
 .modal-footer {
@@ -184,6 +232,8 @@
 }
 
 .form-field input[type="text"],
+.form-field input[type="email"],
+.form-field input[type="password"],
 .form-field input[type="number"],
 .form-field input[type="url"],
 .form-field input[type="date"],
@@ -325,4 +375,47 @@
 
 .vaccine-item span {
     color: var(--text-muted);
+}
+
+/* Autenticação (Login / Registro nos modais) */
+.demo-credentials-box {
+    background: var(--bg);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.85rem 1rem;
+    margin: 0.5rem 0 1rem;
+}
+
+.demo-credentials-box p {
+    margin: 0 0 0.55rem;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+.demo-credentials-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.modal-switch-text {
+    margin: 0.35rem 0 0;
+    font-size: 0.86rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.link-button {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: inherit;
+    font-weight: 700;
+    color: var(--primary);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.link-button:hover {
+    color: var(--primary-hover);
 }
